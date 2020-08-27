@@ -16,7 +16,7 @@ party vendor. The whole situation is depicted on following picture.
 ![audio_chain](doc/pic/audio_chain.png)
 
 ## The problem
-As depicted on the audio chain picture, there are tow main problems:
+As depicted on the audio chain picture, there are two main problems:
 - AFE
 - Audio Streams
 
