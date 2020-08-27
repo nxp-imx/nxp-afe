@@ -31,7 +31,7 @@ configure all the necessary streams to make the whole audio chain functional. Fu
 to communicate over ethernet to change the audio chain configuration on fly. The architecture is depicted
 on the following picture.
 
-![nxp_afe](doc/pic/NXP_AFE.png)
+![nxp_afe](doc/pic/nxp_afe.png)
 
 ## Generic signal processor
 To allow the change between signal processors a generic Signal Processor API has been defined - pure 
