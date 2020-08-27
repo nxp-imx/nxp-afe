@@ -67,8 +67,8 @@ struct streamSettings
      * Sample formats
      * 
      * @remark Maybe we should abstract away any references to ALSA, however
-     * there are plenty of formats. Need to decide, whether it wouls make sense
-     * to define just some of them?
+     * there are plenty of formats. Need to decide, whether it would make sense
+     * to define just some of them or redefine the whole set?
      */
     snd_pcm_format_t format;
     /**
@@ -110,7 +110,7 @@ public:
     void open(const struct streamSettings & settings);
     void start(void) override;
     void stop(bool force) override;
-    void close(void);
+    void close(void) override;
     int recover(int err);
     int readFrames(void * buffer, size_t size);
     int writeFrames(const void * buffer, size_t size) const;

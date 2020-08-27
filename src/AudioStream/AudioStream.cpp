@@ -35,9 +35,7 @@ namespace AudioStreamWrapper
 
     AudioStream::~AudioStream(void)
     {
-        std::cout << "Invoking destructor, closing stream..." << std::endl;
         close();
-        std::cout << "Stream closed, object destroyed." << std::endl;
     }
 
     void
@@ -134,6 +132,8 @@ namespace AudioStreamWrapper
     void
     AudioStream::setSwParams(void)
     {
+        /* TODO if needed, we can define this function and introduce new parameters. For now, we don't
+        configure SW parameters. */
         #if 0
         int err;
         if ((err = snd_pcm_sw_params_current(handle, swParams)) < 0)
@@ -240,6 +240,8 @@ namespace AudioStreamWrapper
         if (expected_bytes != byte_count) throw AudioStreamException("Buffer for storing captured samples is to small", this->_streamName.c_str(), __FILE__, __LINE__, -1);
 
         /* Check that the stream is input, otherwise we can't read out of it */
+        /* TODO it appears, that writing to a capture stream and reading out of playback stream is allowed and doesn't return any errors...
+        maybe we can skip this check... needs more investigation and make a decision, how to handle writing/reading into/from capture/playback stream. */
         //if (SND_PCM_STREAM_CAPTURE != this->_streamType) throw AudioStreamException("Invalid use of readFrames(), stream opened as output/playback!", this->_streamName.c_str(), __FILE__, __LINE__, -1);
 
         snd_pcm_sframes_t availableFrames = snd_pcm_avail_update(this->_handle);

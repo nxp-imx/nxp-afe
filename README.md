@@ -55,24 +55,27 @@ the signal processor.
 
 ## Audio stream wrappers
 The ALSA library represents an interface between the HW and the SW and can be used to read/write samples
-from/to streams. To ease the use of ALSA, a simple class hierarchy for audio streams has been defined and is
+from/to streams.
+
+### Audio stream source code
+To ease the use of ALSA, a simple class hierarchy for audio streams has been defined and is
 located under src/AudioStream/.
 
+### Audio chain using ALSA
+Before we can provide clean microphone signal to the audio assistant, we need to filter out the microphone signals
+with the use of playback (reference signal). This has following consequences:
+- we need to read captured samples
+- we need to modify the chain in a way, that we can read out playback samples before they are being played
+- we need to write the filtered microphone signal somewhere so the applications can have access to it
 
+ALSA provides a solution to the above points using ALSA loopback virtual device(s). This device allows to
+read back written values. So we configure the chain in a way, that all applications playing audio will write 
+into this device so we can read the playback samples for further use. For the capture stream, we need to define
+the devices in such a way, that the applications will read out from this loopback device while we will write
+the filtered samples into this device. Picture below provides a more detailed insight into the loopback
+configuration.
 
-The idea of the application is based around ALSA loopback device. The microphones input signal together with 
-a playback signal (called a reference signal) is filtered and redirected (written) into the loopback. The AFE 
-is read from this loopback device and process the signal. After the signal is
-processed, the signal is written again into the loopback device and the AVS listens (reads) data from
-this loopback device.
-
-The same applies for playback. The playback signal is written into the loopback device, the AFE reads this
-signal, filters it and writes it again into the loopback device.
-
-The ALSA loopback device consists of a capture/playback loopback devices. For instace a loopback capture 
-device 0,0,0 represents a Card 0, Device 0, Subdevice 0. Writing into such a device results in a signal being
-copied into capture loopback device 0,1,0, which can be read by the AFE. The AFE processes this signal and
-writes it back into the TODO
+![loopback](doc/pic/loopback.png)
 
 # Project status
 The src/main.cpp represents an example how to use the audio stream class in conjunction with the signal processor
