@@ -77,6 +77,9 @@ configuration.
 
 ![loopback](doc/pic/loopback.png)
 
+We need to define our own ALSA configuration to support the abovementioned approach. This can be found under misc/
+in "asound.conf" file. Specific configurations can be stored either under /etc/asound.conf or under $HOME/.asoundrc.
+
 # Project status
 The src/main.cpp represents an example how to use the audio stream class in conjunction with the signal processor
 classes to load an implementation and filter the signals.
