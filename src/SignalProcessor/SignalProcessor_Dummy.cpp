@@ -13,7 +13,7 @@ namespace SignalProcessor
             \"sample_rate\" : -1,\n\
             \"sample_format\" : S32_LE,\n\
             \"period_size\" : 512,\n\
-            \"input_channels\" : 8,\n\
+            \"input_channels\" : 6,\n\
             \"ref_channels\" : -1,\n\
             \"channel2output\" : 0\n\
         },\n\
@@ -182,8 +182,8 @@ namespace SignalProcessor
         this->_sampleFormat             = SND_PCM_FORMAT_S32_LE;
         /* The default period size is 512 frames */
         this->_periodSize               = 512;
-        /* The number of input channels by default is 8. */
-        this->_inputChannelsCount       = 8;
+        /* The number of input channels by default is 6. */
+        this->_inputChannelsCount       = 6;
         /* As we don't filter anything, we don't care about the number of reference channels,
         from this perspective we support any number of channels, as they are not used anyweay. */
         this->_referenceChannelsCount   = -1;
