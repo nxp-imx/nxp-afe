@@ -9,7 +9,35 @@
 #include "AudioStream/AudioStream.h"
 #include "SignalProcessor/SignalProcessorImplementation.h"
 
-const char * libraryName = "./libdummyimpl.so";
+std::string commandUsageStr =
+    "Invalid input arguments!\n" \
+    "Refer to the following command:\n" \
+    "./afe libdummyimpl.so\n" \
+    "./afe libdspcimpl.so\n" \
+    "./afe libfraunhoferimpl.so";
+
+enum class libraryType {
+    DUMMY,
+    DSPC,
+    FRAUNHOFER
+} libIndex;
+
+std::unordered_map<std::string, libraryType> libraryInfo = {
+	{"libdummyimpl.so", libraryType::DUMMY}, 
+    {"libdspcimpl.so", libraryType::DSPC},
+    {"libfraunhoferimpl.so", libraryType::FRAUNHOFER}
+};
+
+std::string libraryName;
+
+/**
+ * @brief Convert S32_LE to float
+ * 
+ * @retval value in range <-1, 1>
+ * 
+ * @remark Everything below -1 and above 1 is clipped to be in range.
+ */
+float s32letofloat(int32_t s32Value);
 
 using namespace AudioStreamWrapper;
 
@@ -82,11 +110,21 @@ struct streamSettings captureLoopbackSettings =
 typedef void * (*creator)(void);
 typedef void * (*destructor)(SignalProcessor::SignalProcessorImplementation * impl);
 
-int main (void)
+int main (int argc, char *argv[])
 {
+	std::string inputArg = argv[1];
+	if (argc == 2 && libraryInfo.find(inputArg) != libraryInfo.end()) {
+        libraryName = "./" + inputArg;
+        std::cout << libraryName << std::endl;
+        libIndex = libraryInfo[argv[1]];
+    } else {
+        std::cout << commandUsageStr << std::endl;
+        exit(1);
+    }
+	
 	char * message;
 	std::cout << "Openning " << libraryName << std::endl;
-	void * library = dlopen(libraryName, RTLD_NOW);
+	void * library = dlopen(libraryName.c_str(), RTLD_NOW);
 	message = dlerror();
 	if (nullptr != message) {
 		std::cout << "Opening library failed: " << message << std::endl;
@@ -118,9 +156,16 @@ int main (void)
 	std::cout << "Opening signal processor...\n";
 	std::unordered_map<std::string, std::string> processorSettings = {{"sample_format", "S32_LE"}, {"channel2output", "0"}, {"input_channels", "6"}, {"period_size", "512"}};
 	//impl->openProcessor(&processorSettings);
-	impl->openProcessor(&processorSettings);
+	impl->openProcessor();
 	std::cout << "Signal processor opened.\n";
 	
+	//fraunhofer library only supports FLOAT_LE 
+	//set format for captureInput as well as captureLoopback 
+	if (libIndex == libraryType::FRAUNHOFER) {
+		captureInputSettings.format = SND_PCM_FORMAT_FLOAT_LE;
+		captureLoopbackSettings.format = SND_PCM_FORMAT_FLOAT_LE;
+	}
+
 	int err;
 	AudioStream playbackLoopbackInput;
 	playbackLoopbackInput.open(playbackLoopbackSettings);
@@ -158,13 +203,13 @@ int main (void)
 	
 	try
 	{
-	err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
-	err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
-	err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
-	
-	err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
-	err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
-	err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
+		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
+		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
+		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
+		
+		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
+		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
+		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
 	}
 	catch (AudioStreamException & e)
 	{
@@ -202,6 +247,16 @@ int main (void)
 				err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
 				if (err < 0)
 					throw AudioStreamException(snd_strerror(err), "writeFrames", __FILE__, __LINE__, err);
+				
+				//convert format if fraunhofer library used
+				if (libIndex == libraryType::FRAUNHOFER) {
+					for (uint32_t i = 0; i < period_size * playbackOutputChannels; i++) {
+						s32le_sample = *((uint32_t *)buffer + i);
+						f_sample = s32letofloat(s32le_sample);
+						*((float *)buffer + i) = f_sample;
+					}
+				}
+
 			}
 			else
 			{
@@ -245,4 +300,15 @@ int main (void)
 	destroyFce(impl);
 	dlclose(library);
 	return 0;
+}
+
+float s32letofloat(int32_t s32Value)
+{
+	float retval;
+	retval = ((float)s32Value) / ((float)4294967295);
+	if (retval > 1.f)
+		retval = 1.f;
+	if (retval < -1.f)
+		retval = -1.f;
+	return retval;
 }
