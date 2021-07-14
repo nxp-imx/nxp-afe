@@ -42,12 +42,12 @@ float s32letofloat(int32_t s32Value);
 using namespace AudioStreamWrapper;
 
 static const char * playbackLoopbackInputName	= "prloop";
-static const snd_pcm_format_t format 			= SND_PCM_FORMAT_S32_LE;
+static snd_pcm_format_t format 					= SND_PCM_FORMAT_S32_LE;
 static const StreamType acc 					= StreamType::eInterleaved;
 static const int playbackOutputChannels			= 2;
-static const int rate 							= 16000;
-static const snd_pcm_uframes_t period_size 		= 512;
-static const snd_pcm_uframes_t buffer_size 		= period_size * 4;
+static int rate 								= 16000;
+static int period_size 							= 512;
+static int buffer_size 							= period_size * 4;
 
 static const snd_pcm_format_t formatPlaybackLoop = SND_PCM_FORMAT_S32_LE; 
  
@@ -58,54 +58,6 @@ static const char * captureLoopbackOutputName 	= "cwloop";
 static const int captureOutputChannels  = 1;
 
 static const int outputStreamChannels = 1;
-
-struct streamSettings playbackLoopbackSettings =
-{
-	playbackLoopbackInputName,
-	formatPlaybackLoop,
-	acc,
-	StreamDirection::eInput,
-	playbackOutputChannels,					/* channels */
-	rate, 									/* rate */
-	buffer_size,							/* buffer size in frames */
-	period_size,							/* period size in frames */
-};
-
-struct streamSettings playbackOutputSettings =
-{
-	playbackOutputName,
-	SND_PCM_FORMAT_S32_LE,
-	acc,
-	StreamDirection::eOutput,
-	playbackOutputChannels,					/* channels */
-	rate, 									/* rate */
-	buffer_size,							/* buffer size in frames */
-	period_size,							/* period size in frames */
-};
-
-struct streamSettings captureInputSettings =
-{
-	captureInputName,
-	format,
-	acc,
-	StreamDirection::eInput,
-	captureInputChannels,
-	rate,
-	buffer_size,
-	period_size
-};
-
-struct streamSettings captureLoopbackSettings = 
-{
-	captureLoopbackOutputName,
-	format,
-	acc,
-	StreamDirection::eOutput,
-	captureOutputChannels,
-	rate,
-	buffer_size,
-	period_size,
-};
 
 typedef void * (*creator)(void);
 typedef void * (*destructor)(SignalProcessor::SignalProcessorImplementation * impl);
@@ -122,6 +74,66 @@ int main (int argc, char *argv[])
         exit(1);
     }
 	
+	//fraunhofer library only supports FLOAT_LE 
+	//set format for captureInput as well as captureLoopback 
+	if (libIndex == libraryType::FRAUNHOFER) {
+		format = SND_PCM_FORMAT_FLOAT_LE;
+	}
+
+	//dspc library only supports buffer size 768 and rate 48000
+	if (libIndex == libraryType::DSPC) {
+		period_size = 768;
+		buffer_size = period_size * 4;
+		rate = 48000;
+	}
+	struct streamSettings playbackLoopbackSettings =
+	{
+		playbackLoopbackInputName,
+		formatPlaybackLoop,
+		acc,
+		StreamDirection::eInput,
+		playbackOutputChannels,					/* channels */
+		rate, 									/* rate */
+		buffer_size,							/* buffer size in frames */
+		period_size,							/* period size in frames */
+	};
+
+	struct streamSettings playbackOutputSettings =
+	{
+		playbackOutputName,
+		SND_PCM_FORMAT_S32_LE,
+		acc,
+		StreamDirection::eOutput,
+		playbackOutputChannels,					/* channels */
+		rate, 									/* rate */
+		buffer_size,							/* buffer size in frames */
+		period_size,							/* period size in frames */
+	};
+
+	struct streamSettings captureInputSettings =
+	{
+		captureInputName,
+		format,
+		acc,
+		StreamDirection::eInput,
+		captureInputChannels,
+		rate,
+		buffer_size,
+		period_size
+	};
+
+	struct streamSettings captureLoopbackSettings = 
+	{
+		captureLoopbackOutputName,
+		format,
+		acc,
+		StreamDirection::eOutput,
+		captureOutputChannels,
+		rate,
+		buffer_size,
+		period_size,
+	};
+
 	char * message;
 	std::cout << "Openning " << libraryName << std::endl;
 	void * library = dlopen(libraryName.c_str(), RTLD_NOW);
@@ -158,13 +170,6 @@ int main (int argc, char *argv[])
 	//impl->openProcessor(&processorSettings);
 	impl->openProcessor();
 	std::cout << "Signal processor opened.\n";
-	
-	//fraunhofer library only supports FLOAT_LE 
-	//set format for captureInput as well as captureLoopback 
-	if (libIndex == libraryType::FRAUNHOFER) {
-		captureInputSettings.format = SND_PCM_FORMAT_FLOAT_LE;
-		captureLoopbackSettings.format = SND_PCM_FORMAT_FLOAT_LE;
-	}
 
 	int err;
 	AudioStream playbackLoopbackInput;
@@ -250,8 +255,8 @@ int main (int argc, char *argv[])
 				
 				//convert format if fraunhofer library used
 				if (libIndex == libraryType::FRAUNHOFER) {
-					for (uint32_t i = 0; i < period_size * playbackOutputChannels; i++) {
-						s32le_sample = *((uint32_t *)buffer + i);
+					for (int i = 0; i < period_size * playbackOutputChannels; i++) {
+						s32le_sample = *((int *)buffer + i);
 						f_sample = s32letofloat(s32le_sample);
 						*((float *)buffer + i) = f_sample;
 					}
@@ -274,7 +279,7 @@ int main (int argc, char *argv[])
 
 				if (1 != outputStreamChannels)
 				{
-					for (uint32_t i = 0; i < period_size; i++)
+					for (int i = 0; i < period_size; i++)
 					{
 						memcpy((char *)cleanMicChannel + i * sampleSize, (char *)filteredBuffer + i * outputStreamChannels * sampleSize, sampleSize);
 					}
