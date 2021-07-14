@@ -1,3 +1,7 @@
+/*----------------------------------------------------------------------------
+    SPDX-License-Identifier: BSD-3-Clause
+    Copyright (c) 2020 - 2021 NXP. All rights reserved.
+----------------------------------------------------------------------------*/
 #include <exception>
 
 #ifndef _AudioFrontEnd_
