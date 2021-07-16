@@ -12,9 +12,9 @@
 std::string commandUsageStr =
     "Invalid input arguments!\n" \
     "Refer to the following command:\n" \
-    "./afe libdummyimpl.so\n" \
-    "./afe libdspcimpl.so\n" \
-    "./afe libfraunhoferimpl.so";
+    "./afe libdummy\n" \
+    "./afe libdspc\n" \
+    "./afe libfraunhofer";
 
 enum class libraryType {
     DUMMY,
@@ -23,12 +23,13 @@ enum class libraryType {
 } libIndex;
 
 std::unordered_map<std::string, libraryType> libraryInfo = {
-	{"libdummyimpl.so", libraryType::DUMMY}, 
-    {"libdspcimpl.so", libraryType::DSPC},
-    {"libfraunhoferimpl.so", libraryType::FRAUNHOFER}
+	{"libdummy", libraryType::DUMMY}, 
+    {"libdspc", libraryType::DSPC},
+    {"libfraunhofer", libraryType::FRAUNHOFER}
 };
 
 std::string libraryName;
+std::string libraryDir = "/usr/lib/nxp-afe/";
 
 /**
  * @brief Convert S32_LE to float
@@ -66,9 +67,21 @@ int main (int argc, char *argv[])
 {
 	std::string inputArg = argv[1];
 	if (argc == 2 && libraryInfo.find(inputArg) != libraryInfo.end()) {
-        libraryName = "./" + inputArg;
-        std::cout << libraryName << std::endl;
         libIndex = libraryInfo[argv[1]];
+		switch (libIndex) {
+		case libraryType::DUMMY:
+			libraryName = libraryDir + "libdummyimpl.so";
+			break;
+		case libraryType::DSPC:
+			libraryName = libraryDir + "libdspcimpl.so";
+			break;
+		case libraryType::FRAUNHOFER:
+			libraryName = libraryDir + "libfraunhoferimpl.so";
+			break;
+		default:
+			break;
+		}
+        std::cout << libraryName << std::endl;
     } else {
         std::cout << commandUsageStr << std::endl;
         exit(1);
