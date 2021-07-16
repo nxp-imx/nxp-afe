@@ -9,17 +9,34 @@ We can find the folder named *deploy_afe* under the same directory level of
 <audio-front-end>.
 
 # What's in the *deploy_afe* folder
-
-- afe
+```
+deploy_afe/
+├── afe
+├── asound.conf
+├── libdspcimpl.so
+├── libdummyimpl.so
+├── libfraunhoferimpl.so
+├── TODO.md
+└── vui_6mic_stereo.awb
+```
+- afe:  
   NXP audio front end wrapper 
-- asound.conf
+- asound.conf:  
   Alsa configuration file
-- libdummyimpl.so
+- libdummyimpl.so:  
   a dummy library for echo cancellation
-- libdspcimpl.so & vui_6mic_stereo.awb
+- libdspcimpl.so & vui_6mic_stereo.awb:  
   dspc library for echo cancellation
-- libfraunhofer.so
+- libfraunhofer.so:  
   fraunhofer library for echo cancellation
+- TODO.md:  
+  a user guide
+
+# How to integrate with yocto
+
+1. copy all *.so, vui_6mic_stereo.awb to */usr/lib/nxp-afe/* in rootfs.
+
+2. copy afe, asound.conf, TODO.md to */unit_tests/nxp-afe/* in rootfs 
 
 # How to execute program
 
@@ -30,29 +47,28 @@ We can find the folder named *deploy_afe* under the same directory level of
 in rootfs, and then copy *deploy_afe/asound.conf* to */etc/* to replace 
 the asound.conf file there.
 
-3. copy *deploy_afe* to /home/root/app/ and cd to it.
-
-4. execute afe refering to the following command:
-./afe libdummyimpl.so
-./afe libdspcimpl.so
-./afe libfraunhoferimpl.so
+3. cd to */unit_tests/nxp-afe/* execute afe refering to the following command:
+./afe libdummy
+./afe libdspc
+./afe libfraunhofer
 
 # How to test
 Firstly, you should put afe program into operation in the background.
 Secondly, use aplay tool to playback a piece of audio through speaker.
 Thirdly, use arecord tool to start record and speak to microphone soon after.
 Finally, we get the audio with echo cancellation.
+
 ## using dummy library
-1. `./afe libdummyimpl.so &`
+1. `./afe libdummy &`
 2. `aplay S32LE16000.wav &`
 3. `arecord -d10 -fS32_LE -r16000 -c1 dummy_afe_on.wav`
 
 ## using dspc library
-1. `./afe libdspcimpl.so &`
+1. `./afe libdspc &`
 2. `aplay S32LE16000.wav &`
 3. `arecord -d10 -fS32_LE -r16000 -c1 dspc_afe_on.wav`
 
 ## using fraunhofer library
-1. `./afe libdummyimpl.so &`
+1. `./afe libfraunhofer &`
 2. `aplay S32LE16000.wav &`
 3. `arecord -d10 -fFLOAT_LE -r16000 -c1 fraunhofer_afe_on.wav`

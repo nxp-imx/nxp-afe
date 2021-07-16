@@ -22,3 +22,4 @@ make distclean
 
 git checkout master
 cp misc/asound.conf ../deploy_afe
+cp TODO.md ../deploy_afe
