@@ -32,6 +32,8 @@ CXXFLAGS 	:= -g3 -O3 \
 				-Wno-parentheses \
 				-fdiagnostics-show-option
 
+VERSION		:= 1.0
+PROGRAM		:= build/bin/libdummyimpl.so
 
 # Write down all the source files here used to compile the final app
 _SOURCES += SignalProcessor_Dummy.cpp
@@ -40,7 +42,7 @@ SOURCES += src/SignalProcessor/SignalProcessor_Dummy.cpp
 
 OBJECTS += build/obj/SignalProcessor_Dummy.o
 
-LIBRARIES += build/bin/libdummyimpl.so
+LIBRARIES += build/bin/libdummyimpl.so.$(VERSION)
 
 # NON-MODIFIABLE PART
 # DON'T TOUCH THE REST OF THIS SCIRPT, IF YOU DON'T KNOW, WHAT YOU ARE DOING
@@ -65,7 +67,8 @@ clean:
 # rule to build our program out of object files
 # | $(BINDIR) - make sure there is a $(BINDIR) directory
 # before linking object files into final binary
-$(PROGRAM):  $(LIBRARIES) | $(BINDIR)
+$(PROGRAM):  $(LIBRARIES) | $(BINDIR) 
+	ln -s libdummyimpl.so.$(VERSION) $@
 
 # rule to build objects out of sources
 # to force rebuild not just on source files update, but also on header files, 
@@ -82,7 +85,7 @@ $(OBJDIR)/%.o: %.cpp $(DEPDIR)/%.d | $(DEPDIR)
 	$(POSTCOMPILE)
 
 # TODO This recipe has been added in rush, needs to be cleaned up a bit maybe
-$(BINDIR)/libdummyimpl.so: $(OBJDIR)/SignalProcessor_Dummy.o | $(BINDIR)
+$(BINDIR)/libdummyimpl.so.$(VERSION): $(OBJDIR)/SignalProcessor_Dummy.o | $(BINDIR)
 	@echo "\nBuilding: $@"
 	$(CXX) -o $@ -shared $^
 

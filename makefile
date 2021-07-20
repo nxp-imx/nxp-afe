@@ -72,16 +72,25 @@ DEPFLAGS 	= -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
 # so they won't get deleted after build finishes
 POSTCOMPILE = mv -f $(DEPDIR)/$(*F).Td $(DEPDIR)/$(*F).d && touch $@
 
+INSTALLDIR := ../deploy_afe
 .PHONY: all clean distclean
 
 # our default build target
-all: $(PROGRAM)
+all: $(PROGRAM) | $(INSTALLDIR)
+	make -C src/SignalProcessor
+	cp $(BINDIR)/* $(INSTALLDIR)
+	cp src/SignalProcessor/$(BINDIR)/* $(INSTALLDIR)
+	cp misc/* $(INSTALLDIR)
+	cp TODO.md $(INSTALLDIR)
 
 distclean:
 	rm -rf build
+	make -C src/SignalProcessor distclean
+	rm -rf $(INSTALLDIR)
 
 clean:
 	rm -rf build/bin build/obj
+	make -C src/SignalProcessor clean
 
 # rule to build our program out of object files
 # | $(BINDIR) - make sure there is a $(BINDIR) directory
@@ -116,6 +125,9 @@ $(BINDIR):
 $(DEPDIR):
 	mkdir -p $@
 
+$(INSTALLDIR):
+	mkdir -p $@
+
 DEPFILES := $(_SOURCES:%.cpp=$(DEPDIR)/%.d)
 
 # for very first built, there are no dep files. In such case
@@ -128,3 +140,4 @@ include $(wildcard $(DEPFILES))
 
 include src/AudioStream/makefile
 include src/AudioFrontEnd/makefile
+#include src/SignalProcessor/makefile

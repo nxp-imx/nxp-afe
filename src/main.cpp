@@ -65,8 +65,7 @@ typedef void * (*destructor)(SignalProcessor::SignalProcessorImplementation * im
 
 int main (int argc, char *argv[])
 {
-	std::string inputArg = argv[1];
-	if (argc == 2 && libraryInfo.find(inputArg) != libraryInfo.end()) {
+	if (argc == 2 && libraryInfo.find(argv[1]) != libraryInfo.end()) {
         libIndex = libraryInfo[argv[1]];
 		switch (libIndex) {
 		case libraryType::DUMMY:
