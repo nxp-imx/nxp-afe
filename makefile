@@ -79,7 +79,7 @@ INSTALLDIR := ../deploy_afe
 all: $(PROGRAM) | $(INSTALLDIR)
 	make -C src/SignalProcessor
 	cp $(BINDIR)/* $(INSTALLDIR)
-	cp src/SignalProcessor/$(BINDIR)/* $(INSTALLDIR)
+	cp -d src/SignalProcessor/$(BINDIR)/* $(INSTALLDIR)
 	cp misc/* $(INSTALLDIR)
 	cp TODO.md $(INSTALLDIR)
 
