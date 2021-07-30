@@ -1,6 +1,6 @@
 /*----------------------------------------------------------------------------
-    SPDX-License-Identifier: BSD-3-Clause   
-    Copyright (c) 2020 - 2021 NXP. All rights reserved.
+    Copyright 2020-2021 NXP
+    SPDX-License-Identifier: BSD-3-Clause
 ----------------------------------------------------------------------------*/
 #include <string>
 #include <unordered_map>
