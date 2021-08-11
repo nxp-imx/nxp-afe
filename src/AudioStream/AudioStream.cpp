@@ -1,4 +1,3 @@
-// Copyright 2020-2021 NXP
 // SPDX-License-Identifier: BSD-3-Clause
 #include "AudioStream.h"
 #include "AudioStreamException.h"
@@ -235,12 +234,31 @@ namespace AudioStreamWrapper
         //if (SND_PCM_STREAM_CAPTURE != this->_streamType) throw AudioStreamException("Invalid use of readFrames(), stream opened as output/playback!", this->_streamName.c_str(), __FILE__, __LINE__, -1);
 
         snd_pcm_sframes_t availableFrames = snd_pcm_avail_update(this->_handle);
-        if (0 > availableFrames) throw AudioStreamException(snd_strerror(availableFrames), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+        if (availableFrames < 0) {
+            if (availableFrames == -EPIPE) {
+                availableFrames = snd_pcm_recover(this->_handle, availableFrames, 1);
+                if (availableFrames < 0)
+                    throw AudioStreamException(snd_strerror(availableFrames), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+                else
+                    availableFrames = snd_pcm_avail_update(this->_handle);
+            }
+            else
+                throw AudioStreamException(snd_strerror(availableFrames), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+        }
 
         if (availableFrames >= this->_periodSizeFrames)
         {
             int err = snd_pcm_readi(this->_handle, buffer, this->_periodSizeFrames);
-            if (0 > err) throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+            if (err < 0) {
+                if (err == -EPIPE) {
+                    err = snd_pcm_recover(this->_handle, err, 1);
+                    if (err < 0)
+                        throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+                    err = snd_pcm_readi(this->_handle, buffer, this->_periodSizeFrames);
+                }
+                else
+                    throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+            }
             return err;
         }
         
@@ -260,12 +278,31 @@ namespace AudioStreamWrapper
         //if (SND_PCM_STREAM_PLAYBACK != this->_streamType) throw AudioStreamException("Invalid use of writeFrames(), stream opened as input/capture!", this->_streamName.c_str(), __FILE__, __LINE__, -1);
 
         snd_pcm_sframes_t availableFrames = snd_pcm_avail_update(this->_handle);
-        if (0 > availableFrames) throw AudioStreamException(snd_strerror(availableFrames), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+        if (availableFrames < 0) {
+            if (availableFrames == -EPIPE) {
+                availableFrames = snd_pcm_recover(this->_handle, availableFrames, 1);
+                if (availableFrames < 0)
+                    throw AudioStreamException(snd_strerror(availableFrames), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+                else
+                    availableFrames = snd_pcm_avail_update(this->_handle);
+            }
+            else
+                throw AudioStreamException(snd_strerror(availableFrames), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+        }
 
         if (availableFrames >= this->_periodSizeFrames)
         {
             int err = snd_pcm_writei(this->_handle, buffer, this->_periodSizeFrames);
-            if (0 > err) throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+            if (err < 0) {
+                if (err == -EPIPE) {
+                    err = snd_pcm_recover(this->_handle, err, 1);
+                    if (err < 0)
+                        throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+                    err = snd_pcm_writei(this->_handle, buffer, this->_periodSizeFrames);
+                }
+                else
+                    throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+            }
             return err;
         }
         

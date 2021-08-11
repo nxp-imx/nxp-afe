@@ -223,7 +223,8 @@ int main (int argc, char *argv[])
 		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
 		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
 		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
-		
+		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
+		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
 		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
 		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
 		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
