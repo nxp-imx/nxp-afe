@@ -31,14 +31,33 @@ deploy_afe/
 
 2. copy afe, asound.conf, TODO.md to */unit_tests/nxp-afe/* in rootfs 
 
+# Preparation before the test
+
+Here are the dtb and mic hardware needed to prepare before the test:
+
+```
++------+-------------------+----------------------------+-----------------------------+
+|      |    imx8mp         |   imx8mm                   |   imx8mn                    |
++-------------------------------------------------------------------------------------+
+| dtb  |    imx8mp-evk.dtb |   imx8mm-evk-8mic-revE.dtb |   imx8mn-evk-8mic-revE.dtb  |
++-------------------------------------------------------------------------------------+
+| mic  |    8mic_board     |   8mic_board               |   8mic_board                |
++------+-------------------+----------------------------+-----------------------------+
+
+```
+
 # How to execute program
 
 1. install aloop module to support afe
 `insmod snd-aloop.ko`
 
-2. handle asound.conf. You'd better make a backup of */etc/asound.conf* 
-in rootfs, and then copy *deploy_afe/asound.conf* to */etc/* to replace 
-the asound.conf file there.
+2. handle asound.conf
+You'd better make a backup of */etc/asound.conf* in rootfs, 
+and then copy */unit_tests/nxp-afe/asound.conf* to */etc/* to replace 
+the asound.conf file there. There is a little different on imx8mp board
+because the config file is asound.conf_imx8mp. Apart from copying it to */etc/*, 
+the name should also be changed like:
+`cp /unit_tests/nxp-afe/asound.conf_imx8mp /etc/asound.conf`
 
 3. cd to */unit_tests/nxp-afe/* execute afe refering to the following command:
 ./afe libdummy
@@ -46,6 +65,7 @@ the asound.conf file there.
 ./afe libfraunhofer
 
 # How to test
+
 Firstly, you should put afe program into operation in the background.
 Secondly, use aplay tool to playback a piece of audio through speaker.
 Thirdly, use arecord tool to start record and speak to microphone soon after.
