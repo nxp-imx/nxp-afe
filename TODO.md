@@ -88,3 +88,27 @@ demonstration. So you will hear speech mixed with playback music.
 1. `./afe libfraunhofer &`
 2. `aplay S32LE16000.wav &`
 3. `arecord -d10 -fFLOAT_LE -r16000 -c1 fraunhofer_afe_on.wav`
+
+# AFE test with rpmsg soundcard
+This feature depends on the 2.11 MCU SDK release. It is not available in Q4 release.
+
+## Preparation before the test
+
+Here are the dtb, config files, mic hardware needed to prepare before the test:
+
+```
++------+-------------------+---------------------------------------------+
+|       |    imx8mp                      |   imx8mm                      |
++-------------------------------------------------------------------------
+| dtb   |    imx8mp-evk-rpmsg.dtb        |   imx8mm-evk-rpmsg-wm8524.dtb |
++-------------------------------------------------------------------------
+| conf  |    asound.conf_rpmsg_imx8mp    |   asound.conf_rpmsg_imx8mm    |
++------+-------------------+---------------------------------------------+
+| mic   |    8mic_board                  |   8mic_board                  |
++------+-------------------+---------------------------------------------+
+```
+asound.conf_rpmsg_XX need to be renamed and copied to corresponding directory.
+For specific practices, refer to the introduction above.
+
+## AFE test
+The following test is the same to the above.
