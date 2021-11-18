@@ -24,8 +24,8 @@ enum class libraryType {
 
 std::unordered_map<std::string, libraryType> libraryInfo = {
 	{"libdummy", libraryType::DUMMY}, 
-    {"libdspc", libraryType::DSPC},
-    {"libfraunhofer", libraryType::FRAUNHOFER}
+	{"libdspc", libraryType::DSPC},
+	{"libfraunhofer", libraryType::FRAUNHOFER}
 };
 
 std::string libraryName;
@@ -43,22 +43,22 @@ float s32letofloat(int32_t s32Value);
 using namespace AudioStreamWrapper;
 
 static const char * playbackLoopbackInputName	= "prloop";
-static snd_pcm_format_t format 					= SND_PCM_FORMAT_S32_LE;
-static const StreamType acc 					= StreamType::eInterleaved;
-static const int playbackOutputChannels			= 2;
-static int rate 								= 16000;
-static int period_size 							= 512;
-static int buffer_size 							= period_size * 4;
+static snd_pcm_format_t format 			= SND_PCM_FORMAT_S32_LE;
+static const StreamType acc 			= StreamType::eInterleaved;
+static const int playbackOutputChannels		= 2;
+static int rate 				= 16000;
+static int period_size 				= 512;
+static int buffer_size 				= period_size * 4;
 
 static const snd_pcm_format_t formatPlaybackLoop = SND_PCM_FORMAT_S32_LE; 
  
-static const char * playbackOutputName 	= "spk";
-static const char * captureInputName 	= "mic";
-static const int captureInputChannels 	= 6;
+static const char * playbackOutputName 		= "spk";
+static const char * captureInputName 		= "mic";
+static const int captureInputChannels 		= 6;
 static const char * captureLoopbackOutputName 	= "cwloop";
-static const int captureOutputChannels  = 1;
+static const int captureOutputChannels 	 	= 1;
 
-static const int outputStreamChannels = 1;
+static const int outputStreamChannels 		= 1;
 
 typedef void * (*creator)(void);
 typedef void * (*destructor)(SignalProcessor::SignalProcessorImplementation * impl);
@@ -66,7 +66,7 @@ typedef void * (*destructor)(SignalProcessor::SignalProcessorImplementation * im
 int main (int argc, char *argv[])
 {
 	if (argc == 2 && libraryInfo.find(argv[1]) != libraryInfo.end()) {
-        libIndex = libraryInfo[argv[1]];
+		libIndex = libraryInfo[argv[1]];
 		switch (libIndex) {
 		case libraryType::DUMMY:
 			libraryName = libraryDir + "libdummyimpl.so";
@@ -80,11 +80,11 @@ int main (int argc, char *argv[])
 		default:
 			break;
 		}
-        std::cout << libraryName << std::endl;
-    } else {
-        std::cout << commandUsageStr << std::endl;
-        exit(1);
-    }
+		std::cout << libraryName << std::endl;
+	} else {
+		std::cout << commandUsageStr << std::endl;
+		exit(1);
+	}
 	
 	//fraunhofer library only supports FLOAT_LE 
 	//set format for captureInput as well as captureLoopback 
@@ -105,9 +105,9 @@ int main (int argc, char *argv[])
 		acc,
 		StreamDirection::eInput,
 		playbackOutputChannels,					/* channels */
-		rate, 									/* rate */
-		buffer_size,							/* buffer size in frames */
-		period_size,							/* period size in frames */
+		rate, 							/* rate */
+		buffer_size,						/* buffer size in frames */
+		period_size,						/* period size in frames */
 	};
 
 	struct streamSettings playbackOutputSettings =
@@ -117,9 +117,9 @@ int main (int argc, char *argv[])
 		acc,
 		StreamDirection::eOutput,
 		playbackOutputChannels,					/* channels */
-		rate, 									/* rate */
-		buffer_size,							/* buffer size in frames */
-		period_size,							/* period size in frames */
+		rate, 							/* rate */
+		buffer_size,						/* buffer size in frames */
+		period_size,						/* period size in frames */
 	};
 
 	struct streamSettings captureInputSettings =
