@@ -68,6 +68,20 @@ pcm.mix
 	}
 }
 
+pcm.split
+{
+	type dsnoop
+	ipc_key 1002
+	slave {
+		pcm "crloop"
+		format S32_LE
+		rate 16000
+		channels 1
+		buffer_size 2048
+		period_size 512
+	}
+}
+
 # Applications like Alexa read/write from/to default stream.
 # Unfortunately we can't have default capture stream and
 # default playback stream. ALSA offers the asym plugin, which
@@ -78,6 +92,6 @@ pcm.!default
 {
 	type asym
 	playback.pcm "plug:mix"
-	capture.pcm "plug:crloop"
+	capture.pcm "plug:split"
 }
 
