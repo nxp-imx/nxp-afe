@@ -14,18 +14,21 @@ std::string commandUsageStr =
     "Refer to the following command:\n" \
     "./afe libdummy\n" \
     "./afe libdspc\n" \
-    "./afe libfraunhofer";
+    "./afe libfraunhofer\n" \
+    "./afe libvoiceseekerlight";
 
 enum class libraryType {
     DUMMY,
     DSPC,
-    FRAUNHOFER
+    FRAUNHOFER,
+    VOICESEEKERLIGHT
 } libIndex;
 
 std::unordered_map<std::string, libraryType> libraryInfo = {
 	{"libdummy", libraryType::DUMMY}, 
 	{"libdspc", libraryType::DSPC},
-	{"libfraunhofer", libraryType::FRAUNHOFER}
+	{"libfraunhofer", libraryType::FRAUNHOFER},
+	{"libvoiceseekerlight", libraryType::VOICESEEKERLIGHT}
 };
 
 std::string libraryName;
@@ -54,7 +57,7 @@ static const snd_pcm_format_t formatPlaybackLoop = SND_PCM_FORMAT_S32_LE;
  
 static const char * playbackOutputName 		= "spk";
 static const char * captureInputName 		= "mic";
-static const int captureInputChannels 		= 6;
+static int captureInputChannels 		= 6;
 static const char * captureLoopbackOutputName 	= "cwloop";
 static const int captureOutputChannels 	 	= 1;
 
@@ -65,7 +68,9 @@ typedef void * (*destructor)(SignalProcessor::SignalProcessorImplementation * im
 
 int main (int argc, char *argv[])
 {
-	if (argc == 2 && libraryInfo.find(argv[1]) != libraryInfo.end()) {
+	std::unordered_map<std::string, std::string> processorSettings = {{"sample_format", "S32_LE"}, {"channel2output", "0"}, {"input_channels", "6"}, {"period_size", "512"}};
+
+	if (argc >= 2 && libraryInfo.find(argv[1]) != libraryInfo.end()) {
 		libIndex = libraryInfo[argv[1]];
 		switch (libIndex) {
 		case libraryType::DUMMY:
@@ -73,9 +78,34 @@ int main (int argc, char *argv[])
 			break;
 		case libraryType::DSPC:
 			libraryName = libraryDir + "libdspcimpl.so";
+			//dspc library only supports buffer size 768 and rate 48000
+			period_size = 768;
+			buffer_size = period_size * 4;
+			rate = 48000;
+			processorSettings = {{"sample_format", "S32_LE"},
+					     {"channel2output", "0"},
+					     {"input_channels", "6"},
+					     {"period_size", "768"}};
 			break;
 		case libraryType::FRAUNHOFER:
 			libraryName = libraryDir + "libfraunhoferimpl.so";
+			//fraunhofer library only supports FLOAT_LE
+			//set format for captureInput as well as captureLoopback
+			format = SND_PCM_FORMAT_FLOAT_LE;
+			processorSettings = {{"sample_format", "FLOAT_LE"},
+					     {"channel2output", "0"},
+					     {"input_channels", "6"},
+					     {"period_size", "512"}};
+			break;
+		case libraryType::VOICESEEKERLIGHT:
+			libraryName = libraryDir + "libvoiceseekerlight.so";
+			period_size = 800;
+			buffer_size = period_size * 4;
+			captureInputChannels = 4;
+			processorSettings = {{"sample_format", "S32_LE"},
+					     {"channel2output", "0"},
+					     {"input_channels", "4"},
+					     {"period_size", "800"}};
 			break;
 		default:
 			break;
@@ -86,18 +116,6 @@ int main (int argc, char *argv[])
 		exit(1);
 	}
 	
-	//fraunhofer library only supports FLOAT_LE 
-	//set format for captureInput as well as captureLoopback 
-	if (libIndex == libraryType::FRAUNHOFER) {
-		format = SND_PCM_FORMAT_FLOAT_LE;
-	}
-
-	//dspc library only supports buffer size 768 and rate 48000
-	if (libIndex == libraryType::DSPC) {
-		period_size = 768;
-		buffer_size = period_size * 4;
-		rate = 48000;
-	}
 	struct streamSettings playbackLoopbackSettings =
 	{
 		playbackLoopbackInputName,
@@ -178,9 +196,20 @@ int main (int argc, char *argv[])
 	std::cout << impl->getSampleFormat() << std::endl;
 	
 	std::cout << "Opening signal processor...\n";
-	std::unordered_map<std::string, std::string> processorSettings = {{"sample_format", "S32_LE"}, {"channel2output", "0"}, {"input_channels", "6"}, {"period_size", "512"}};
-	//impl->openProcessor(&processorSettings);
-	impl->openProcessor();
+
+	switch (libIndex) {
+	case libraryType::DUMMY:
+	case libraryType::DSPC:
+	case libraryType::FRAUNHOFER:
+		impl->openProcessor();
+		break;
+	case libraryType::VOICESEEKERLIGHT:
+		impl->openProcessor(&processorSettings);
+		break;
+	default:
+		break;
+	}
+
 	std::cout << "Signal processor opened.\n";
 
 	int err;

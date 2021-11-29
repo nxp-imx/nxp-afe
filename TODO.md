@@ -63,12 +63,15 @@ the name should also be changed like:
 ./afe libdummy
 ./afe libdspc
 ./afe libfraunhofer
+./afe libvoiceseekerlight
 
 # How to test
 
-Firstly, you should put afe program into operation in the background.
-Secondly, use aplay tool to playback a piece of audio through speaker.
-Thirdly, use arecord tool to start record and speak to microphone soon after.
+Firstly, you should put VoiceSpot application into operation in the background
+this step is only required when the voiceseekerlight library is used.
+Secondly, you should put afe program into operation in the background.
+Thirdly, use aplay tool to playback a piece of audio through speaker.
+Fourthly, use arecord tool to start record and speak to microphone soon after.
 Finally, we get the audio with echo cancellation.
 
 dummy library can not realize echo cancellation, because it is only used for
@@ -88,6 +91,17 @@ demonstration. So you will hear speech mixed with playback music.
 1. `./afe libfraunhofer &`
 2. `aplay S32LE16000.wav &`
 3. `arecord -d10 -fFLOAT_LE -r16000 -c1 fraunhofer_afe_on.wav`
+
+## using VoiceSeeker library with voicespot
+1. `./VoiceSpot &`
+2. `./afe libvoiceseekerlight &`
+3. `aplay S32LE16000.wav &`
+4. `arecord -d10 -fS32_LE -r16000 -c1 voiceseeker_afe_on.wav`
+
+## using VoiceSeeker library without voicespot by modify the Config.ini
+1. `./afe libvoiceseekerlight &`
+2. `aplay S32LE16000.wav &`
+3. `arecord -d10 -fS32_LE -r16000 -c1 voiceseeker_afe_on.wav`
 
 # AFE test with rpmsg soundcard
 This feature depends on the 2.11 MCU SDK release. It is not available in Q4 release.
