@@ -123,33 +123,33 @@ namespace AudioStreamWrapper
     {
         /* TODO if needed, we can define this function and introduce new parameters. For now, we don't
         configure SW parameters. */
-        #if 0
         int err;
-        if ((err = snd_pcm_sw_params_current(handle, swParams)) < 0)
+        if ((err = snd_pcm_sw_params_current(_handle, _swParams)) < 0)
         {
             printf("[AudioStream]: Unable to get stream software parameters; %s\n", snd_strerror(err));
             close();
             exit(EXIT_FAILURE);
         }
-        if ((err = snd_pcm_sw_params_set_start_threshold(handle, swParams, streamSettings.buffer_size)) < 0)
+        /* playback pcm will start automatically if samples in ring buffer is >= start threshold */
+        snd_pcm_uframes_t start_threshold = this->_streamType == SND_PCM_STREAM_PLAYBACK? _bufferSizeFrames: 1;
+        if ((err = snd_pcm_sw_params_set_start_threshold(_handle, _swParams, start_threshold)) < 0)
         {
             printf("[AudioStream]: Unable to set start treshold; %s\n", snd_strerror(err));
             close();
             exit(EXIT_FAILURE);
         }
-        if ((err = snd_pcm_sw_params_set_avail_min(handle, swParams, streamSettings.period_size)) < 0)
+        if ((err = snd_pcm_sw_params_set_stop_threshold(_handle, _swParams, _periodSizeFrames)) < 0)
         {
-            printf("[AudioStream]: Unable to set minimal available frames; %s\\n", snd_strerror(err));
+            printf("[AudioStream]: Unable to set stop treshold; %s\n", snd_strerror(err));
             close();
             exit(EXIT_FAILURE);
         }
-        if((err = snd_pcm_sw_params(handle, swParams)) < 0)
+        if((err = snd_pcm_sw_params(_handle, _swParams)) < 0)
         {
             printf("[AudioStream]: Unable to set SW parameters; %s\n", snd_strerror(err));
             close();
             exit(EXIT_FAILURE);
         }
-        #endif
     }
 
     void
@@ -250,13 +250,8 @@ namespace AudioStreamWrapper
         {
             int err = snd_pcm_readi(this->_handle, buffer, this->_periodSizeFrames);
             if (err < 0) {
-                if (err == -EPIPE) {
-                    err = snd_pcm_recover(this->_handle, err, 1);
-                    if (err < 0)
-                        throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
-                    err = snd_pcm_readi(this->_handle, buffer, this->_periodSizeFrames);
-                }
-                else
+                err = this->recover(err);
+                if (err < 0)
                     throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
             }
             return err;
@@ -266,7 +261,7 @@ namespace AudioStreamWrapper
     }
 
     int
-    AudioStream::writeFrames(const void * buffer, size_t byte_count) const
+    AudioStream::writeFrames(const void * buffer, size_t byte_count)
     {
         /* Make sure the user provided buffer of appropriate size by computing the required bytes count */
         size_t expected_bytes = static_cast<size_t>(snd_pcm_format_size(this->_format, this->_channels * this->_periodSizeFrames));
@@ -277,36 +272,27 @@ namespace AudioStreamWrapper
         /* Check that the stream is input, otherwise we can't read out of it */
         //if (SND_PCM_STREAM_PLAYBACK != this->_streamType) throw AudioStreamException("Invalid use of writeFrames(), stream opened as input/capture!", this->_streamName.c_str(), __FILE__, __LINE__, -1);
 
-        snd_pcm_sframes_t availableFrames = snd_pcm_avail_update(this->_handle);
-        if (availableFrames < 0) {
-            if (availableFrames == -EPIPE) {
-                availableFrames = snd_pcm_recover(this->_handle, availableFrames, 1);
-                if (availableFrames < 0)
-                    throw AudioStreamException(snd_strerror(availableFrames), this->_streamName.c_str(), __FILE__, __LINE__, -1);
-                else
-                    availableFrames = snd_pcm_avail_update(this->_handle);
+        void *data = const_cast<void *>(buffer);
+        uint8_t buffer_offset = 0;
+        size_t frames_count = this->_periodSizeFrames;
+        size_t result = 0;
+        while (frames_count > 0) {
+            int err = snd_pcm_writei(this->_handle, (uint8_t *)data + buffer_offset, frames_count);
+            if (err == -EAGAIN) {
+                continue;
             }
-            else
-                throw AudioStreamException(snd_strerror(availableFrames), this->_streamName.c_str(), __FILE__, __LINE__, -1);
-        }
-
-        if (availableFrames >= this->_periodSizeFrames)
-        {
-            int err = snd_pcm_writei(this->_handle, buffer, this->_periodSizeFrames);
             if (err < 0) {
-                if (err == -EPIPE) {
-                    err = snd_pcm_recover(this->_handle, err, 1);
-                    if (err < 0)
-                        throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
-                    err = snd_pcm_writei(this->_handle, buffer, this->_periodSizeFrames);
-                }
-                else
+                if (this->recover(err) < 0)
                     throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
             }
-            return err;
+
+            if (err > 0) {
+                frames_count -= err;
+                buffer_offset += err * (byte_count / this->_periodSizeFrames);
+                result += err;
+            }
         }
-        
-        return 0;
+        return result;
     }
 
     void
