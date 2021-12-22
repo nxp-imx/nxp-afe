@@ -233,9 +233,6 @@ namespace AudioStreamWrapper
         maybe we can skip this check... needs more investigation and make a decision, how to handle writing/reading into/from capture/playback stream. */
         //if (SND_PCM_STREAM_CAPTURE != this->_streamType) throw AudioStreamException("Invalid use of readFrames(), stream opened as output/playback!", this->_streamName.c_str(), __FILE__, __LINE__, -1);
 
-	if (snd_pcm_state(this->_handle) == SND_PCM_STATE_PREPARED)
-		snd_pcm_start(this->_handle);
-
         snd_pcm_sframes_t availableFrames = snd_pcm_avail_update(this->_handle);
         if (availableFrames < 0) {
             if (availableFrames == -EPIPE) {
@@ -279,9 +276,6 @@ namespace AudioStreamWrapper
 
         /* Check that the stream is input, otherwise we can't read out of it */
         //if (SND_PCM_STREAM_PLAYBACK != this->_streamType) throw AudioStreamException("Invalid use of writeFrames(), stream opened as input/capture!", this->_streamName.c_str(), __FILE__, __LINE__, -1);
-
-	if (snd_pcm_state(this->_handle) == SND_PCM_STATE_PREPARED)
-		snd_pcm_start(this->_handle);
 
         snd_pcm_sframes_t availableFrames = snd_pcm_avail_update(this->_handle);
         if (availableFrames < 0) {
