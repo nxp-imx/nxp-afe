@@ -62,9 +62,6 @@ namespace AudioStreamWrapper
         setHwParams();
 
         setSwParams();
-
-        err = snd_pcm_hw_params(_handle, _hwParams);
-        if (err < 0) throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
     }
 
     void
@@ -141,9 +138,15 @@ namespace AudioStreamWrapper
             close();
             exit(EXIT_FAILURE);
         }
-        if ((err = snd_pcm_sw_params_set_stop_threshold(_handle, _swParams, _periodSizeFrames)) < 0)
+        if ((err = snd_pcm_sw_params_set_stop_threshold(_handle, _swParams, _bufferSizeFrames)) < 0)
         {
             printf("[AudioStream]: Unable to set stop treshold; %s\n", snd_strerror(err));
+            close();
+            exit(EXIT_FAILURE);
+        }
+        if ((err = snd_pcm_sw_params_set_avail_min(_handle, _swParams, _periodSizeFrames)) < 0)
+        {
+            printf("[AudioStream]: Unable to set avail min; %s\n", snd_strerror(err));
             close();
             exit(EXIT_FAILURE);
         }
@@ -235,31 +238,42 @@ namespace AudioStreamWrapper
         /* TODO it appears, that writing to a capture stream and reading out of playback stream is allowed and doesn't return any errors...
         maybe we can skip this check... needs more investigation and make a decision, how to handle writing/reading into/from capture/playback stream. */
         //if (SND_PCM_STREAM_CAPTURE != this->_streamType) throw AudioStreamException("Invalid use of readFrames(), stream opened as output/playback!", this->_streamName.c_str(), __FILE__, __LINE__, -1);
+        if (snd_pcm_state(this->_handle) == SND_PCM_STATE_PREPARED)
+            this->start();
 
-        snd_pcm_sframes_t availableFrames = snd_pcm_avail_update(this->_handle);
+        snd_pcm_sframes_t availableFrames = snd_pcm_avail(this->_handle);
         if (availableFrames < 0) {
-            if (availableFrames == -EPIPE) {
-                availableFrames = snd_pcm_recover(this->_handle, availableFrames, 1);
+                availableFrames = this->recover(availableFrames);
                 if (availableFrames < 0)
                     throw AudioStreamException(snd_strerror(availableFrames), this->_streamName.c_str(), __FILE__, __LINE__, -1);
                 else
-                    availableFrames = snd_pcm_avail_update(this->_handle);
-            }
-            else
-                throw AudioStreamException(snd_strerror(availableFrames), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+                    availableFrames = snd_pcm_avail(this->_handle);
         }
 
         if (availableFrames >= this->_periodSizeFrames)
-        {
-            int err = snd_pcm_readi(this->_handle, buffer, this->_periodSizeFrames);
-            if (err < 0) {
-                err = this->recover(err);
-                if (err < 0)
-                    throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+        {   
+            uint8_t buffer_offset = 0;
+            size_t frames_count = this->_periodSizeFrames;
+            size_t result = 0;
+            while (frames_count > 0) {
+                int err = snd_pcm_readi(this->_handle, (uint8_t *)buffer + buffer_offset, frames_count);
+                if (err == -EAGAIN) {
+                    snd_pcm_wait(this->_handle, 100);
+                    continue;
+                }
+                if (err < 0) {
+                    if (this->recover(err) < 0)
+                        throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+                }
+
+                if (err > 0) {
+                    frames_count -= err;
+                    buffer_offset += err * (byte_count / this->_periodSizeFrames);
+                    result += err;
+                }
             }
-            return err;
+            return result;
         }
-        
         return 0;
     }
 
@@ -282,6 +296,7 @@ namespace AudioStreamWrapper
         while (frames_count > 0) {
             int err = snd_pcm_writei(this->_handle, (uint8_t *)data + buffer_offset, frames_count);
             if (err == -EAGAIN) {
+                snd_pcm_wait(this->_handle, 100);
                 continue;
             }
             if (err < 0) {
