@@ -70,6 +70,7 @@ namespace AudioStreamWrapper
     void
     AudioStream::setHwParams(void)
     {
+        snd_pcm_uframes_t val;
         int err = 0;
         /* Get the stream configuration space
         This configuration space contains all possible configurations
@@ -102,15 +103,17 @@ namespace AudioStreamWrapper
             throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
         }
 
-        if ((err = snd_pcm_hw_params_set_buffer_size(_handle, _hwParams, this->_bufferSizeFrames)) < 0)
-        {
-            throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
-        }
-
         if ((err = snd_pcm_hw_params_set_period_size(_handle, _hwParams, this->_periodSizeFrames, PCM_VALUE_EQUAL)) < 0)
         {
             throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
         }
+
+        val = this->_bufferSizeFrames;
+        if ((err = snd_pcm_hw_params_set_buffer_size_near(_handle, _hwParams, &val)) < 0)
+        {
+            throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+        }
+        this->_bufferSizeFrames = val;
 
         if ((err = snd_pcm_hw_params(_handle, _hwParams)) < 0)
         {
