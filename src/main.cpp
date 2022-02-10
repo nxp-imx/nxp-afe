@@ -148,7 +148,7 @@ int main (int argc, char *argv[])
 		StreamDirection::eInput,
 		captureInputChannels,
 		rate,
-		buffer_size * 8,
+		buffer_size,
 		period_size
 	};
 

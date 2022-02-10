@@ -106,6 +106,12 @@ namespace AudioStreamWrapper
         }
 
         val = this->_bufferSizeFrames;
+        if (this->_streamName == "mic") {
+            if ((err = snd_pcm_hw_params_get_buffer_size_max(_hwParams, &val)) < 0)
+            {
+                throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+            }
+        }
         if ((err = snd_pcm_hw_params_set_buffer_size_near(_handle, _hwParams, &val)) < 0)
         {
             throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
