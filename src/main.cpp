@@ -277,7 +277,7 @@ int main (int argc, char *argv[])
 
 		while (1)
 		{
-			if (period_size == (err = captureInput.readFrames(captureBuffer, period_size * captureInputChannels * sampleSize)) && micSamplesReady != true)
+			if (micSamplesReady != true && period_size == (err = captureInput.readFrames(captureBuffer, period_size * captureInputChannels * sampleSize)))
 			{
 				micSamplesReady = true;
 			}
@@ -287,7 +287,7 @@ int main (int argc, char *argv[])
 					throw AudioStreamException(snd_strerror(err), "readFrames", __FILE__, __LINE__, err);
 			}
 
-			if (period_size == (err = playbackLoopbackInput.readFrames(buffer, period_size * playbackOutputChannels * sampleSize)) && spkSamplesReady != true)
+			if (spkSamplesReady != true && period_size == (err = playbackLoopbackInput.readFrames(buffer, period_size * playbackOutputChannels * sampleSize)))
 			{
 				spkSamplesReady = true;
 
