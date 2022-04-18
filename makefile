@@ -6,7 +6,7 @@ BINDIR		:= $(BUILDDIR)/bin
 DEPDIR		:= $(BUILDDIR)/deps
 SRCDIR		:= src
 LDLIBS 		:= -lasound -ldl -lpthread
-CPPFLAGS 	:= -I src/ -I src/SignalProcessor -I src/AudioStream
+CPPFLAGS 	:= -I src/ -I src/SignalProcessor -I src/AudioStream -I src/AFEUtilities
 CXXFLAGS 	:= -g3 -O3 \
 				-Wall \
 				-Wextra \
@@ -40,25 +40,29 @@ _SOURCES = main.cpp \
 			AudioStreamBase.cpp \
 			AudioStream.cpp \
 			AudioStreamException.cpp \
-			AudioFrontEnd.cpp
+			AudioFrontEnd.cpp \
+			AFEUtilities.cpp
 
 SOURCES = src/main.cpp \
 			src/AudioStream/AudioStreamBase.cpp \
 			src/AudioStream/AudioStream.cpp \
 			src/AudioStream/AudioStreamException.cpp \
-			src/AudioFrontEnd/AudioFrontEnd.cpp
+			src/AudioFrontEnd/AudioFrontEnd.cpp \
+			src/AFEUtilities/AFEUtilities.cpp
 
 OBJECTS = build/obj/main.o \
 			src/AudioStream/AudioStreamBase.cpp \
 			src/AudioStream/AudioStream.o \
 			build/obj/AudioStreamException.o \
-			build/obj/AudioFrontEnd.o
+			build/obj/AudioFrontEnd.o \
+			src/AFEUtilities/AFEUtilities.o
 
 APPOBJECTS = build/obj/main.o \
 			build/obj/AudioStreamBase.o \
 			build/obj/AudioStream.o \
 			build/obj/AudioStreamException.o \
-			build/obj/AudioFrontEnd.o
+			build/obj/AudioFrontEnd.o \
+			build/obj/AFEUtilities.o
 
 
 #TODO move source/objects etc. file definitions from this makefile into its own makefile????
@@ -140,4 +144,5 @@ include $(wildcard $(DEPFILES))
 
 include src/AudioStream/makefile
 include src/AudioFrontEnd/makefile
+include src/AFEUtilities/makefile
 #include src/SignalProcessor/makefile

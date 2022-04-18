@@ -4,6 +4,7 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <alsa/asoundlib.h>
+#include "AFEUtilities/AFEUtilities.h"
 
 namespace AudioStreamWrapper
 {
@@ -228,6 +229,11 @@ namespace AudioStreamWrapper
     int
     AudioStream::recover(int err)
     {
+        /* Start to tune rate shift after resume */
+        if (err == -ESTRPIPE && this->_streamName == "mic")
+        {
+            rate_shift_enable = true;
+        }
         return snd_pcm_recover(this->_handle, err, 1);
     }
 
@@ -344,7 +350,28 @@ namespace AudioStreamWrapper
         if (pcm_state == SND_PCM_STATE_XRUN)
             this->recover(-EPIPE);
 
-        return snd_pcm_avail(this->_handle);
+        snd_pcm_uframes_t availableFrames = snd_pcm_avail(this->_handle);
+        if (this->_streamName == "mic" && rate_shift_enable)
+        {
+            if (availableFrames > 0)
+            {
+                if (tuned == false)
+                {
+                    rateShiftControl(80000);
+                    tuned = true;
+                }
+            }
+            else
+            {
+                if (tuned)
+                {
+                    rateShiftControl(100000);
+                    tuned = false;
+                    rate_shift_enable = false;
+                }
+            }
+        }
+        return availableFrames;
     }
 
 }   /* namespace AudioStream */
