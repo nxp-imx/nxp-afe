@@ -5,7 +5,7 @@ OBJDIR 		:= $(BUILDDIR)/obj
 BINDIR		:= $(BUILDDIR)/bin
 DEPDIR		:= $(BUILDDIR)/deps
 SRCDIR		:= src
-LDLIBS 		:= -lasound -ldl
+LDLIBS 		:= -lasound -ldl -lpthread
 CPPFLAGS 	:= -I src/ -I src/SignalProcessor -I src/AudioStream
 CXXFLAGS 	:= -g3 -O3 \
 				-Wall \

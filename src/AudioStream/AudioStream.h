@@ -107,6 +107,7 @@ public:
     int readFrames(void * buffer, size_t size);
     int writeFrames(const void * buffer, size_t size);
 
+    int availFrames(void);
     void printConfig(void);
 
 protected:

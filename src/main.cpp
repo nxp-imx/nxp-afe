@@ -5,6 +5,7 @@
 #include <alsa/asoundlib.h>
 #include <iostream>
 #include <dlfcn.h>
+#include <pthread.h>
 
 #include "AudioStream/AudioStream.h"
 #include "SignalProcessor/SignalProcessorImplementation.h"
@@ -43,6 +44,12 @@ std::string libraryDir = "/usr/lib/nxp-afe/";
  */
 float s32letofloat(int32_t s32Value);
 
+void *thread_playback_function(void *arg);
+void *thread_capture_function(void *arg);
+//pthread_mutex_t playback_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t capture_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t cond_var = PTHREAD_COND_INITIALIZER;
+
 using namespace AudioStreamWrapper;
 
 static const char * playbackLoopbackInputName	= "prloop";
@@ -65,6 +72,21 @@ static const int outputStreamChannels 		= 1;
 
 typedef void * (*creator)(void);
 typedef void * (*destructor)(SignalProcessor::SignalProcessorImplementation * impl);
+
+static AudioStream playbackLoopbackInput;
+static AudioStream playbackOutput;
+static AudioStream captureInput;
+static AudioStream captureLoopbackOutput;
+
+bool micSamplesReady = false;
+bool spkSamplesReady = false;
+
+void * buffer;
+void * captureBuffer;
+void * filteredBuffer;
+void * cleanMicChannel;
+void * convertedBuffer;
+int sampleSize;
 
 int main (int argc, char *argv[])
 {
@@ -213,31 +235,33 @@ int main (int argc, char *argv[])
 	std::cout << "Signal processor opened.\n";
 
 	int err;
-	AudioStream playbackLoopbackInput;
 	playbackLoopbackInput.open(playbackLoopbackSettings);
 	playbackLoopbackInput.printConfig();
 
-	AudioStream playbackOutput;
 	playbackOutput.open(playbackOutputSettings);
 	playbackOutput.printConfig();
 
-	AudioStream captureInput;
 	captureInput.open(captureInputSettings);
 	captureInput.printConfig();
 
-	AudioStream captureLoopbackOutput;
 	captureLoopbackOutput.open(captureLoopbackSettings);
 	captureLoopbackOutput.printConfig();
 
+	sampleSize = snd_pcm_format_width(format) / 8;
+	buffer = calloc(period_size * playbackOutputChannels, sampleSize);
 
-	int sampleSize = snd_pcm_format_width(format) / 8;
-	void * buffer = calloc(period_size * playbackOutputChannels, sampleSize);
+	captureBuffer = calloc(period_size * captureInputChannels, sampleSize);
 
-	void * captureBuffer = calloc(period_size * captureInputChannels, sampleSize);
+	filteredBuffer = calloc(period_size * captureOutputChannels, sampleSize);
 
-	void * filteredBuffer = calloc(period_size * captureOutputChannels, sampleSize);
-	void * cleanMicChannel;
-
+	if (libIndex == libraryType::FRAUNHOFER)
+	{
+		convertedBuffer = calloc(period_size * playbackOutputChannels, sampleSize);
+	}
+	else
+	{
+		convertedBuffer = buffer;
+	}
 	if (1 == outputStreamChannels)
 	{
 		cleanMicChannel = filteredBuffer;
@@ -267,71 +291,59 @@ int main (int argc, char *argv[])
 	playbackLoopbackInput.start();
 	captureInput.start();
 
-	bool micSamplesReady = false;
-	bool spkSamplesReady = false;
-	uint32_t s32le_sample;
-	float f_sample;
+	pthread_t thread_playback;
+	pthread_t thread_capture;
+	err = pthread_create(&thread_playback, NULL, thread_playback_function, NULL);
+	if (err < 0)
+	{
+		std::cout << "playback thread create failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	err = pthread_create(&thread_capture, NULL, thread_capture_function, NULL);
+	if (err < 0)
+	{
+		std::cout << "capture thread create failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	try
 	{
 
 		while (1)
 		{
-			if (micSamplesReady != true && period_size == (err = captureInput.readFrames(captureBuffer, period_size * captureInputChannels * sampleSize)))
+			pthread_mutex_lock(&capture_lock);
+			while (micSamplesReady != true)
 			{
-				micSamplesReady = true;
-			}
-			else
-			{
-				if (err < 0)
-					throw AudioStreamException(snd_strerror(err), "readFrames", __FILE__, __LINE__, err);
+				pthread_cond_wait(&cond_var, &capture_lock);
 			}
 
-			if (spkSamplesReady != true && period_size == (err = playbackLoopbackInput.readFrames(buffer, period_size * playbackOutputChannels * sampleSize)))
-			{
-				spkSamplesReady = true;
-
-				err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
-				if (err < 0)
-					throw AudioStreamException(snd_strerror(err), "writeFrames", __FILE__, __LINE__, err);
-				
-				//convert format if fraunhofer library used
-				if (libIndex == libraryType::FRAUNHOFER) {
-					for (int i = 0; i < period_size * playbackOutputChannels; i++) {
-						s32le_sample = *((int *)buffer + i);
-						f_sample = s32letofloat(s32le_sample);
-						*((float *)buffer + i) = f_sample;
-					}
+			if (libIndex == libraryType::FRAUNHOFER) {
+				uint32_t s32le_sample;
+				float f_sample;
+				memcpy(convertedBuffer, buffer, period_size * playbackOutputChannels * sampleSize);
+				for (int i = 0; i < period_size * playbackOutputChannels; i++) {
+					s32le_sample = *((int *)convertedBuffer + i);
+					f_sample = s32letofloat(s32le_sample);
+					*((float *)convertedBuffer + i) = f_sample;
 				}
-
 			}
-			else
-			{
-				if (err < 0)
-					std::cout << "Playback err: " << snd_strerror(err) << std::endl;
-			}
-
-			if ((micSamplesReady == true) && (spkSamplesReady == true))
-			{
-				/* Filter signal and write it to mic loopback */
-				impl->processSignal(
+			impl->processSignal(
 					(char *)captureBuffer, period_size * captureInputChannels * sampleSize,
-					(char *)buffer, period_size * playbackOutputChannels * sampleSize,
+					(char *)convertedBuffer, period_size * playbackOutputChannels * sampleSize,
 					(char *)filteredBuffer, period_size * outputStreamChannels * sampleSize);
 
-				if (1 != outputStreamChannels)
+			if (1 != outputStreamChannels)
+			{
+				for (int i = 0; i < period_size; i++)
 				{
-					for (int i = 0; i < period_size; i++)
-					{
-						memcpy((char *)cleanMicChannel + i * sampleSize, (char *)filteredBuffer + i * outputStreamChannels * sampleSize, sampleSize);
-					}
+					memcpy((char *)cleanMicChannel + i * sampleSize, (char *)filteredBuffer + i * outputStreamChannels * sampleSize, sampleSize);
 				}
-
-				captureLoopbackOutput.writeFrames(cleanMicChannel, period_size * captureOutputChannels * sampleSize);
-
-				micSamplesReady = false;
-				spkSamplesReady = false;
 			}
+
+			micSamplesReady = false;
+			pthread_mutex_unlock(&capture_lock);
+
+			captureLoopbackOutput.writeFrames(cleanMicChannel, period_size * captureOutputChannels * sampleSize);
 		}
 	}
 	catch (AudioStreamException &e)
@@ -343,6 +355,10 @@ int main (int argc, char *argv[])
 		std::cout << e.getLine() << std::endl;
 	}
 
+	pthread_join(thread_playback, NULL);
+	pthread_join(thread_capture, NULL);
+	pthread_mutex_destroy(&capture_lock);
+	pthread_cond_destroy(&cond_var);
 	impl->closeProcessor();
 	destroyFce(impl);
 	dlclose(library);
@@ -358,4 +374,61 @@ float s32letofloat(int32_t s32Value)
 	if (retval < -1.f)
 		retval = -1.f;
 	return retval;
+}
+
+void *thread_playback_function(void *arg)
+{
+	int err = 0;
+	while (1)
+	{
+		if (playbackLoopbackInput.availFrames() < period_size)
+		{
+			usleep(100);
+		}
+		else
+		{
+			if (period_size == (err = playbackLoopbackInput.readFrames(buffer, period_size * playbackOutputChannels * sampleSize)))
+			{
+				err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
+				if (err < 0)
+					throw AudioStreamException(snd_strerror(err), "writeFrames", __FILE__, __LINE__, err);
+
+			}
+			else
+			{
+				if (err < 0)
+					throw AudioStreamException(snd_strerror(err), "writeFrames", __FILE__, __LINE__, err);
+			}
+		}
+	}
+	pthread_exit(NULL);
+}
+
+void *thread_capture_function(void *arg)
+{
+	int err = 0;
+	while (1)
+	{
+		if (captureInput.availFrames() < period_size || micSamplesReady)
+		{
+			usleep(100);
+		}
+		else
+		{
+			pthread_mutex_lock(&capture_lock);
+			if (period_size == (err = captureInput.readFrames(captureBuffer, period_size * captureInputChannels * sampleSize)))
+			{
+				micSamplesReady = true;
+				pthread_mutex_unlock(&capture_lock);
+				pthread_cond_signal(&cond_var);
+			}
+			else
+			{
+				pthread_mutex_unlock(&capture_lock);
+				if (err < 0)
+					throw AudioStreamException(snd_strerror(err), "readFrames", __FILE__, __LINE__, err);
+			}
+		}
+	}
+	pthread_exit(NULL);
 }
