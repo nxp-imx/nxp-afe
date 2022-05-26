@@ -230,7 +230,7 @@ namespace AudioStreamWrapper
     AudioStream::recover(int err)
     {
         /* Start to tune rate shift after resume */
-        if (err == -ESTRPIPE && this->_streamName == "mic")
+        if (err == -ESTRPIPE && !rate_shift_enable)
         {
             rate_shift_enable = true;
         }
