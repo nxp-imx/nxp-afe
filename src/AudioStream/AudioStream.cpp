@@ -1,3 +1,4 @@
+// Copyright 2020-2022 NXP
 // SPDX-License-Identifier: BSD-3-Clause
 #include "AudioStream.h"
 #include "AudioStreamException.h"
