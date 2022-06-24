@@ -44,6 +44,11 @@ Here are the dtb and mic hardware needed to prepare before the test:
 | mic  |    8mic_board     |   8mic_board               |   8mic_board                |
 +------+-------------------+----------------------------+-----------------------------+
 
+imx93 environment
+1) dtb
+imx93-11x11-evk.dtb
+2) mic
+pdm on board
 ```
 
 # How to execute program
