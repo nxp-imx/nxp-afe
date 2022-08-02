@@ -4,7 +4,7 @@ defaults.pcm.rate_converter "linear"
 pcm.spk
 {
 	type plug
-	slave.pcm "hw:wm8960audio,0"
+	slave.pcm "hw:wm8962audio,0"
 }
 
 # mic represents the physical source (capture)
