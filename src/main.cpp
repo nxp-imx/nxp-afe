@@ -16,20 +16,23 @@ std::string commandUsageStr =
     "./afe libdummy\n" \
     "./afe libdspc\n" \
     "./afe libfraunhofer\n" \
-    "./afe libvoiceseekerlight";
+    "./afe libvoiceseekerlight\n" \
+    "./afe libconversa";
 
 enum class libraryType {
     DUMMY,
     DSPC,
     FRAUNHOFER,
-    VOICESEEKERLIGHT
+    VOICESEEKERLIGHT,
+    CONVERSA
 } libIndex;
 
 std::unordered_map<std::string, libraryType> libraryInfo = {
 	{"libdummy", libraryType::DUMMY}, 
 	{"libdspc", libraryType::DSPC},
 	{"libfraunhofer", libraryType::FRAUNHOFER},
-	{"libvoiceseekerlight", libraryType::VOICESEEKERLIGHT}
+	{"libvoiceseekerlight", libraryType::VOICESEEKERLIGHT},
+	{"libconversa", libraryType::CONVERSA}
 };
 
 std::string libraryName;
@@ -86,6 +89,8 @@ void * captureBuffer;
 void * filteredBuffer;
 void * cleanMicChannel;
 void * convertedBuffer;
+void * refOutBuffer;	/* Output from algorithm for playback */
+
 int sampleSize;
 
 int main (int argc, char *argv[])
@@ -128,6 +133,16 @@ int main (int argc, char *argv[])
 					     {"channel2output", "0"},
 					     {"input_channels", "4"},
 					     {"period_size", "800"}};
+			break;
+		case libraryType::CONVERSA:
+			libraryName = libraryDir + "libconversa.so";
+			period_size = 192;
+			buffer_size = period_size * 4;
+			captureInputChannels = 4;
+			processorSettings = {{"sample_format", "S32_LE"},
+					     {"channel2output", "0"},
+					     {"input_channels", "4"},
+					     {"period_size", "192"}};
 			break;
 		default:
 			break;
@@ -226,6 +241,7 @@ int main (int argc, char *argv[])
 		impl->openProcessor();
 		break;
 	case libraryType::VOICESEEKERLIGHT:
+	case libraryType::CONVERSA:
 		impl->openProcessor(&processorSettings);
 		break;
 	default:
@@ -249,6 +265,7 @@ int main (int argc, char *argv[])
 
 	sampleSize = snd_pcm_format_width(format) / 8;
 	buffer = calloc(period_size * playbackOutputChannels, sampleSize);
+	refOutBuffer = calloc(period_size * playbackOutputChannels, sampleSize);
 
 	captureBuffer = calloc(period_size * captureInputChannels, sampleSize);
 
@@ -327,7 +344,14 @@ int main (int argc, char *argv[])
 					*((float *)convertedBuffer + i) = f_sample;
 				}
 			}
-			impl->processSignal(
+			if (libIndex == libraryType::CONVERSA)
+				impl->processSignal(
+					(char *)captureBuffer, period_size * captureInputChannels * sampleSize,
+					(char *)convertedBuffer, period_size * playbackOutputChannels * sampleSize,
+					(char *)filteredBuffer, period_size * outputStreamChannels * sampleSize,
+					(char *)refOutBuffer, period_size * outputStreamChannels * sampleSize);
+			else
+				impl->processSignal(
 					(char *)captureBuffer, period_size * captureInputChannels * sampleSize,
 					(char *)convertedBuffer, period_size * playbackOutputChannels * sampleSize,
 					(char *)filteredBuffer, period_size * outputStreamChannels * sampleSize);
@@ -344,6 +368,9 @@ int main (int argc, char *argv[])
 			pthread_mutex_unlock(&capture_lock);
 
 			captureLoopbackOutput.writeFrames(cleanMicChannel, period_size * captureOutputChannels * sampleSize);
+
+			if (libIndex == libraryType::CONVERSA)
+				playbackOutput.writeFrames(refOutBuffer, period_size * playbackOutputChannels * sampleSize);
 		}
 	}
 	catch (AudioStreamException &e)
@@ -389,10 +416,11 @@ void *thread_playback_function(void *arg)
 		{
 			if (period_size == (err = playbackLoopbackInput.readFrames(buffer, period_size * playbackOutputChannels * sampleSize)))
 			{
-				err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
-				if (err < 0)
-					throw AudioStreamException(snd_strerror(err), "writeFrames", __FILE__, __LINE__, err);
-
+				if (libIndex != libraryType::CONVERSA) {
+					err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
+					if (err < 0)
+						throw AudioStreamException(snd_strerror(err), "writeFrames", __FILE__, __LINE__, err);
+				}
 			}
 			else
 			{

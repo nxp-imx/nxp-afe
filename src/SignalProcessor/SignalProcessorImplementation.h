@@ -157,6 +157,19 @@ namespace SignalProcessor
                 char* cleanMicBuffer, size_t cleanMicBufferSize) = 0;
 
             /**
+             *    @brief Overloading of processSignal function to receive an extra buffer and its size
+             *    @param[out] cleanRefBuffer Array of samples representing a filtered single microphone channel.
+             *                The sample format depends on the underlying implementation.
+             *    @param[in] cleanRefBufferSize Microphone output array size in bytes
+             */
+             virtual int
+             processSignal(
+                 const char* nChannelMicBuffer, size_t micBufferSize,
+                 const char* nChannelRefBuffer, size_t refBufferSize,
+                 char* cleanMicBuffer, size_t cleanMicBufferSize,
+                 char* cleanRefBuffer, size_t cleanRefBufferSize) = 0;
+
+            /**
              * @brief Returns a string in JSON format describing the configurations and possible options.
              * @details The string should contain all required parameters with possible options. These
              * should be recognized by the openProcessor() function.

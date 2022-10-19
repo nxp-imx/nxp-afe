@@ -54,6 +54,13 @@ namespace SignalProcessor
             const char *nChannelMicBuffer, size_t micBufferSize,
             const char *nChannelRefBuffer, size_t refBufferSize,
             char *cleanMicBuffer, size_t cleanMicBufferSize);
+
+        int
+        processSignal(
+            const char *nChannelMicBuffer, size_t micBufferSize,
+            const char *nChannelRefBuffer, size_t refBufferSize,
+            char *cleanMicBuffer, size_t cleanMicBufferSize,
+	    char* cleanRefBuffer, size_t cleanRefBufferSize);
         /*
           Returns the complete configuration space in JSON fromat
         */
