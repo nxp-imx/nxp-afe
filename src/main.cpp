@@ -234,6 +234,25 @@ int main (int argc, char *argv[])
 	
 	std::cout << "Opening signal processor...\n";
 
+	if (impl->getPeriodSize()) {
+		period_size = impl->getPeriodSize();
+		buffer_size = period_size * 4;
+
+		processorSettings.at("period_size") = std::to_string(period_size);
+
+		playbackLoopbackSettings.periodSizeFrames = period_size;
+		playbackLoopbackSettings.bufferSizeFrames = buffer_size;
+
+		playbackOutputSettings.periodSizeFrames = period_size;
+		playbackOutputSettings.bufferSizeFrames = buffer_size;
+
+		captureInputSettings.periodSizeFrames = period_size;
+		captureInputSettings.bufferSizeFrames = buffer_size;
+
+		captureLoopbackSettings.periodSizeFrames = period_size;
+		captureLoopbackSettings.bufferSizeFrames = buffer_size;
+	}
+
 	switch (libIndex) {
 	case libraryType::DUMMY:
 	case libraryType::DSPC:
