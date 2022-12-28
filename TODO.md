@@ -110,8 +110,8 @@ demonstration. So you will hear speech mixed with playback music.
 3. `arecord -d10 -fS32_LE -r16000 -c1 voiceseeker_afe_on.wav`
 
 ## using conversa library
-1. `./afe libconversa &`
-2. `./UAC_VCOM_composite.sh`
+1. `./UAC_VCOM_composite.sh`
+2. `./afe libconversa &`
 3. `Connecting the tuning tool from PC`
 4. `arecord -Dplughw:UAC2Gadget -r16000 -c2 -fS16_LE -traw | aplay -Ddefault -r16000 -c2 -fS16_LE -traw`
 5. `arecord -Ddefault -r16000 -c2 -fS16_LE -traw | aplay -Dplughw:UAC2Gadget -r16000 -c2 -fS16_LE -traw`
