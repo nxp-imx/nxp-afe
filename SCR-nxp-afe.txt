@@ -1,0 +1,9 @@
+Package:                     nxp-afe.git
+Version:                     1.0
+Outgoing License:            BSD-3-Clause
+License File:                LICENSE
+Type of Content:             source
+Description and comments:    NXP Audio-Front-end is the software wrapper for ALSA
+Release Location:            https://github.com/nxp-imx/nxp-afe
+Origin:                      NXP (BSD-3-Clause)
+
