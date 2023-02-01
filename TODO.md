@@ -113,8 +113,8 @@ demonstration. So you will hear speech mixed with playback music.
 1. `./UAC_VCOM_composite.sh`
 2. `./afe libconversa &`
 3. `Connecting the tuning tool from PC`
-4. `arecord -Dplughw:UAC2Gadget -r16000 -c2 -fS16_LE -traw | aplay -Ddefault -r16000 -c2 -fS16_LE -traw`
-5. `arecord -Ddefault -r16000 -c2 -fS16_LE -traw | aplay -Dplughw:UAC2Gadget -r16000 -c2 -fS16_LE -traw`
+4. `arecord -Dplughw:UAC2Gadget -r16000 -c2 -fS32_LE -traw | aplay -Ddefault -r16000 -c2 -fS32_LE -traw`
+5. `arecord -Ddefault -r16000 -c2 -fS32_LE -traw | aplay -Dplughw:UAC2Gadget -r16000 -c2 -fS32_LE -traw`
 
 # AFE test with rpmsg soundcard
 This feature depends on the 2.11 MCU SDK release. It is not available in Q4 release.
