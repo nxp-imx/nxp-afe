@@ -49,9 +49,10 @@ float s32letofloat(int32_t s32Value);
 
 void *thread_playback_function(void *arg);
 void *thread_capture_function(void *arg);
-//pthread_mutex_t playback_lock = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t playback_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t capture_lock = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t cond_var = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_var_p = PTHREAD_COND_INITIALIZER;
 
 using namespace AudioStreamWrapper;
 
@@ -353,6 +354,12 @@ int main (int argc, char *argv[])
 				pthread_cond_wait(&cond_var, &capture_lock);
 			}
 
+			pthread_mutex_lock(&playback_lock);
+			while (spkSamplesReady != true)
+			{
+				pthread_cond_wait(&cond_var_p, &playback_lock);
+			}
+
 			if (libIndex == libraryType::FRAUNHOFER) {
 				uint32_t s32le_sample;
 				float f_sample;
@@ -384,6 +391,8 @@ int main (int argc, char *argv[])
 			}
 
 			micSamplesReady = false;
+			spkSamplesReady = false;
+			pthread_mutex_unlock(&playback_lock);
 			pthread_mutex_unlock(&capture_lock);
 
 			captureLoopbackOutput.writeFrames(cleanMicChannel, period_size * captureOutputChannels * sampleSize);
@@ -404,7 +413,9 @@ int main (int argc, char *argv[])
 	pthread_join(thread_playback, NULL);
 	pthread_join(thread_capture, NULL);
 	pthread_mutex_destroy(&capture_lock);
+	pthread_mutex_destroy(&playback_lock);
 	pthread_cond_destroy(&cond_var);
+	pthread_cond_destroy(&cond_var_p);
 	impl->closeProcessor();
 	destroyFce(impl);
 	dlclose(library);
@@ -427,14 +438,18 @@ void *thread_playback_function(void *arg)
 	int err = 0;
 	while (1)
 	{
-		if (playbackLoopbackInput.availFrames() < period_size)
+		if (playbackLoopbackInput.availFrames() < period_size || spkSamplesReady)
 		{
 			usleep(100);
 		}
 		else
 		{
+			pthread_mutex_lock(&playback_lock);
 			if (period_size == (err = playbackLoopbackInput.readFrames(buffer, period_size * playbackOutputChannels * sampleSize)))
 			{
+				spkSamplesReady = true;
+				pthread_mutex_unlock(&playback_lock);
+				pthread_cond_signal(&cond_var_p);
 				if (libIndex != libraryType::CONVERSA) {
 					err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
 					if (err < 0)
@@ -443,6 +458,7 @@ void *thread_playback_function(void *arg)
 			}
 			else
 			{
+				pthread_mutex_unlock(&playback_lock);
 				if (err < 0)
 					throw AudioStreamException(snd_strerror(err), "writeFrames", __FILE__, __LINE__, err);
 			}
