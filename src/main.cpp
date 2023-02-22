@@ -229,10 +229,6 @@ int main (int argc, char *argv[])
 
 	SignalProcessor::SignalProcessorImplementation * impl = (SignalProcessor::SignalProcessorImplementation *) createFce();
 
-	std::cout << impl->getJsonConfigurations() << std::endl;
-
-	std::cout << impl->getSampleFormat() << std::endl;
-	
 	std::cout << "Opening signal processor...\n";
 
 	if (impl->getPeriodSize()) {

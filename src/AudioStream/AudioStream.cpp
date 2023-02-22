@@ -235,6 +235,10 @@ namespace AudioStreamWrapper
         {
             rate_shift_enable = true;
         }
+
+        if (err == -EPIPE)
+            std::cout << this->_streamName << ": " << snd_strerror(err) << ". Please restart AFE!!!" << std::endl;
+
         return snd_pcm_recover(this->_handle, err, 1);
     }
 
