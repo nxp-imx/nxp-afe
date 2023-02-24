@@ -59,7 +59,7 @@ using namespace AudioStreamWrapper;
 static const char * playbackLoopbackInputName	= "prloop";
 static snd_pcm_format_t format 			= SND_PCM_FORMAT_S32_LE;
 static const StreamType acc 			= StreamType::eInterleaved;
-static const int playbackOutputChannels		= 2;
+static int playbackOutputChannels		= 2;
 static int rate 				= 16000;
 static int period_size 				= 512;
 static int buffer_size 				= period_size * 4;
@@ -248,6 +248,12 @@ int main (int argc, char *argv[])
 
 		captureLoopbackSettings.periodSizeFrames = period_size;
 		captureLoopbackSettings.bufferSizeFrames = buffer_size;
+	}
+
+	if (impl->getReferenceChannelsCount()) {
+		playbackOutputChannels = impl->getReferenceChannelsCount();
+		playbackLoopbackSettings.channels = playbackOutputChannels;
+		playbackOutputSettings.channels = playbackOutputChannels;
 	}
 
 	switch (libIndex) {
