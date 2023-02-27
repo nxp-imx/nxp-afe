@@ -5,6 +5,7 @@ pcm.spk
 {
 	type plug
 	slave.pcm "hw:wm8960audio,0"
+	slave.channels 2
 }
 
 # mic represents the physical source (capture) 
