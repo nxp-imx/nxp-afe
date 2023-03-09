@@ -54,7 +54,7 @@ pdm on board
 # How to execute program
 
 1. install aloop module to support afe
-`insmod snd-aloop.ko`
+`sudo modprobe snd-aloop`
 
 2. handle asound.conf
 You'd better make a backup of */etc/asound.conf* in rootfs, 
