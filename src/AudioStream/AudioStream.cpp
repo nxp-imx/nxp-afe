@@ -256,7 +256,7 @@ namespace AudioStreamWrapper
         maybe we can skip this check... needs more investigation and make a decision, how to handle writing/reading into/from capture/playback stream. */
         //if (SND_PCM_STREAM_CAPTURE != this->_streamType) throw AudioStreamException("Invalid use of readFrames(), stream opened as output/playback!", this->_streamName.c_str(), __FILE__, __LINE__, -1);
 
-        uint8_t buffer_offset = 0;
+        size_t buffer_offset = 0;
         size_t frames_count = this->_periodSizeFrames;
         size_t result = 0;
         while (frames_count > 0) {
@@ -291,7 +291,7 @@ namespace AudioStreamWrapper
         //if (SND_PCM_STREAM_PLAYBACK != this->_streamType) throw AudioStreamException("Invalid use of writeFrames(), stream opened as input/capture!", this->_streamName.c_str(), __FILE__, __LINE__, -1);
 
         void *data = const_cast<void *>(buffer);
-        uint8_t buffer_offset = 0;
+        size_t buffer_offset = 0;
         size_t frames_count = this->_periodSizeFrames;
         size_t result = 0;
         while (frames_count > 0) {
