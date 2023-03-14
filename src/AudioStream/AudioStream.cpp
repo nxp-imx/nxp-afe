@@ -267,6 +267,7 @@ namespace AudioStreamWrapper
             else if (err < 0) {
                 if (this->recover(err) < 0)
                     throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+                memset((uint8_t *)buffer, 0, buffer_offset);
             }
 
             if (err > 0) {
@@ -302,6 +303,7 @@ namespace AudioStreamWrapper
             else if (err < 0) {
                 if (this->recover(err) < 0)
                     throw AudioStreamException(snd_strerror(err), this->_streamName.c_str(), __FILE__, __LINE__, -1);
+                memset((uint8_t *)data + buffer_offset, 0, frames_count * snd_pcm_format_size(this->_format, this->_channels));
             }
 
             if (err > 0) {
