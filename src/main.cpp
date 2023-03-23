@@ -164,6 +164,7 @@ int main (int argc, char *argv[])
 		rate, 							/* rate */
 		buffer_size,						/* buffer size in frames */
 		period_size,						/* period size in frames */
+		false,
 	};
 
 	struct streamSettings playbackOutputSettings =
@@ -176,6 +177,7 @@ int main (int argc, char *argv[])
 		rate, 							/* rate */
 		buffer_size,						/* buffer size in frames */
 		period_size,						/* period size in frames */
+		false,
 	};
 
 	struct streamSettings captureInputSettings =
@@ -187,7 +189,8 @@ int main (int argc, char *argv[])
 		captureInputChannels,
 		rate,
 		buffer_size,
-		period_size
+		period_size,
+		false,
 	};
 
 	struct streamSettings captureLoopbackSettings = 
@@ -200,6 +203,7 @@ int main (int argc, char *argv[])
 		rate,
 		buffer_size,
 		period_size,
+		false,
 	};
 
 	char * message;
@@ -263,8 +267,14 @@ int main (int argc, char *argv[])
 		impl->openProcessor();
 		break;
 	case libraryType::VOICESEEKERLIGHT:
+		impl->openProcessor(&processorSettings);
+		break;
 	case libraryType::CONVERSA:
 		impl->openProcessor(&processorSettings);
+		playbackLoopbackSettings.debug_info_enable = true;
+		playbackOutputSettings.debug_info_enable = true;
+		captureInputSettings.debug_info_enable = true;
+		captureLoopbackSettings.debug_info_enable = true;
 		break;
 	default:
 		break;

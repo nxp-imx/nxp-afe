@@ -52,6 +52,7 @@ namespace AudioStreamWrapper
         this->_rate             = settings.rate;
         this->_bufferSizeFrames = settings.bufferSizeFrames;
         this->_periodSizeFrames = settings.periodSizeFrames;
+        this->_debug_info_enable = settings.debug_info_enable;
         
         err = snd_pcm_hw_params_malloc(&(this->_hwParams));
         if (err < 0) throw AudioStreamException("Allocating memory for HW params failed", this->_streamName.c_str(), __FILE__, __LINE__, -1);
@@ -236,7 +237,7 @@ namespace AudioStreamWrapper
             rate_shift_enable = true;
         }
 
-        if (err == -EPIPE)
+        if (err == -EPIPE && this->_debug_info_enable)
             std::cout << this->_streamName << ": " << snd_strerror(err) << ". Please restart AFE!!!" << std::endl;
 
         return snd_pcm_recover(this->_handle, err, 1);

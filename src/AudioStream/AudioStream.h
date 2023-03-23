@@ -88,6 +88,11 @@ struct streamSettings
      * Minimal number of frames to acquire before the user can use them
      */
     int periodSizeFrames;
+
+    /**
+     * output debug info
+     */
+    bool debug_info_enable;
 };
 
 #define FAILURE -1
@@ -124,6 +129,7 @@ protected:
     int _rate;
     int _bufferSizeFrames;
     int _periodSizeFrames;
+    bool _debug_info_enable;
 
     void setHwParams(void);
     void setSwParams(void);
