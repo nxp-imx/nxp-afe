@@ -1,10 +1,10 @@
 # Audio Front End (AFE) repository
-Audio Front End (AFE) repository for solutions incorporating Voice Assistants like Alexa from Amaozn etc.
+Audio Front End (AFE) repository for solutions incorporating Voice Assistants like Alexa from Amazon, etc.
 
 To be able to precisely detect human language, the gathered signal from microphone must be clean without 
 any echo, noise and other disturbances.
 To filter out noise, echo etc. a microphone array is used. Based on the number of microphones the input 
-into the embedded device consists of several microphone (usually) interleaved signals. Such a compound 
+into the embedded device consists of several microphones (usually) interleaved signals. Such a compound
 signal should be fed into a signal processor (commonly known as Audio Front End), which filters out noise,
 echo and other disturbances. The output from the signal processor is the desired single channel clear 
 microphone audio, which is used for further processing (word detection and natural language utilization).
@@ -63,14 +63,14 @@ located under src/AudioStream/.
 
 ### Audio chain using ALSA
 Before we can provide clean microphone signal to the audio assistant, we need to filter out the microphone signals
-with the use of playback (reference signal). This has following consequences:
+with the use of playback (reference signal). This has the following consequences:
 - we need to read captured samples
 - we need to modify the chain in a way, that we can read out playback samples before they are being played
-- we need to write the filtered microphone signal somewhere so the applications can have access to it
+- we need to write the filtered microphone signal somewhere, so the applications can have access to it
 
-ALSA provides a solution to the above points using ALSA loopback virtual device(s). This device allows to
+ALSA provides a solution to the above points using ALSA loopback virtual device(s). This device allows us to
 read back written values. So we configure the chain in a way, that all applications playing audio will write 
-into this device so we can read the playback samples for further use. For the capture stream, we need to define
+into this device, so we can read the playback samples for further use. For the capture stream, we need to define
 the devices in such a way, that the applications will read out from this loopback device while we will write
 the filtered samples into this device. Picture below provides a more detailed insight into the loopback
 configuration.
@@ -84,14 +84,18 @@ in "asound.conf" file. Specific configurations can be stored either under /etc/a
 The src/main.cpp represents an example how to use the audio stream class in conjunction with the signal processor
 classes to load an implementation and filter the signals.
 
-The full impmlementation of the NXP AFE has not been finished and was put on hold at the moment.
+The project is designed to work on our i.MX family, but it could be used on any Linux base system.
+
+While we are still in the process of finalizing and refining the NXP AFE, further development is under consideration.
 
 # How to compile the example
-Cd to <project_folder> and exacute "make".
+Make sure you have installed the libasound library in order to be able to build the project.
 
-This would create a build directory with binary in under build/bin/.
+Cd to <project_folder> and execute "make".
+
+This would create a build directory with binary under <project_folder>/build/bin/.
 
 # How to compile the dummy signal processor
 Cd to <project_folder>/src/SignalProcessor and execute "make".
 
-This would create a build directory with the library under /build/bin.
+This would create a build directory with the binary under /build/bin.
