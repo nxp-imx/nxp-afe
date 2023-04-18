@@ -342,13 +342,54 @@ int main (int argc, char *argv[])
 
 	pthread_t thread_playback;
 	pthread_t thread_capture;
-	err = pthread_create(&thread_playback, NULL, thread_playback_function, NULL);
+	pthread_attr_t tattr;
+	pthread_t tid;
+	sched_param param;;
+	pid_t pid;
+
+	err = pthread_attr_init(&tattr);
+	if (err < 0)
+	{
+		std::cout << "thread attr init failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	err = pthread_attr_setschedpolicy(&tattr, SCHED_RR);
+	if (err < 0)
+	{
+		std::cout << "thread attr set policy failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	err = pthread_attr_getschedparam(&tattr, &param);
+	if (err < 0)
+	{
+		std::cout << "thread attr get param failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	param.sched_priority = 99;
+	err = pthread_attr_setschedparam(&tattr, &param);
+	if (err < 0)
+	{
+		std::cout << "thread attr set param failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	pid = getpid();
+	err = sched_setscheduler(pid, SCHED_RR, &param);
+	if (err < 0)
+	{
+		std::cout << "set main process scheduler failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	err = pthread_create(&thread_playback, &tattr, thread_playback_function, NULL);
 	if (err < 0)
 	{
 		std::cout << "playback thread create failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-	err = pthread_create(&thread_capture, NULL, thread_capture_function, NULL);
+	err = pthread_create(&thread_capture, &tattr, thread_capture_function, NULL);
 	if (err < 0)
 	{
 		std::cout << "capture thread create failed" << std::endl;
