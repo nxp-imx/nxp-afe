@@ -84,6 +84,7 @@ static AudioStream captureLoopbackOutput;
 
 bool micSamplesReady = false;
 bool spkSamplesReady = false;
+bool thread_exit = false;
 
 void * buffer;
 void * captureBuffer;
@@ -96,6 +97,7 @@ int sampleSize;
 
 int main (int argc, char *argv[])
 {
+	bool restart_pipeline = false;
 	std::unordered_map<std::string, std::string> processorSettings = {{"sample_format", "S32_LE"}, {"channel2output", "0"}, {"input_channels", "6"}, {"period_size", "512"}};
 
 	if (argc >= 2 && libraryInfo.find(argv[1]) != libraryInfo.end()) {
@@ -144,6 +146,8 @@ int main (int argc, char *argv[])
 					     {"channel2output", "0"},
 					     {"input_channels", "4"},
 					     {"period_size", "192"}};
+
+			restart_pipeline = true;
 			break;
 		default:
 			break;
@@ -206,6 +210,7 @@ int main (int argc, char *argv[])
 		false,
 	};
 
+	int err;
 	char * message;
 	std::cout << "Openning " << libraryName << std::endl;
 	void * library = dlopen(libraryName.c_str(), RTLD_NOW);
@@ -229,6 +234,49 @@ int main (int argc, char *argv[])
 	if (nullptr != message) {
 		std::cout << "destroyProcessor load: " << message << std::endl;
 		exit(1);
+	}
+
+	pthread_t thread_playback;
+	pthread_t thread_capture;
+	pthread_attr_t tattr;
+	pthread_t tid;
+	sched_param param;;
+	pid_t pid;
+
+	err = pthread_attr_init(&tattr);
+	if (err < 0)
+	{
+		std::cout << "thread attr init failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	err = pthread_attr_setschedpolicy(&tattr, SCHED_RR);
+	if (err < 0)
+	{
+		std::cout << "thread attr set policy failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	err = pthread_attr_getschedparam(&tattr, &param);
+	if (err < 0)
+	{
+		std::cout << "thread attr get param failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	param.sched_priority = 99;
+	err = pthread_attr_setschedparam(&tattr, &param);
+	if (err < 0)
+	{
+		std::cout << "thread attr set param failed" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	pid = getpid();
+	err = sched_setscheduler(pid, SCHED_RR, &param);
+	if (err < 0)
+	{
+		std::cout << "set main process scheduler failed" << std::endl;
+		exit(EXIT_FAILURE);
 	}
 
 	SignalProcessor::SignalProcessorImplementation * impl = (SignalProcessor::SignalProcessorImplementation *) createFce();
@@ -282,19 +330,6 @@ int main (int argc, char *argv[])
 
 	std::cout << "Signal processor opened.\n";
 
-	int err;
-	playbackLoopbackInput.open(playbackLoopbackSettings);
-	playbackLoopbackInput.printConfig();
-
-	playbackOutput.open(playbackOutputSettings);
-	playbackOutput.printConfig();
-
-	captureInput.open(captureInputSettings);
-	captureInput.printConfig();
-
-	captureLoopbackOutput.open(captureLoopbackSettings);
-	captureLoopbackOutput.printConfig();
-
 	sampleSize = snd_pcm_format_width(format) / 8;
 	buffer = calloc(period_size * playbackOutputChannels, sampleSize);
 	refOutBuffer = calloc(period_size * playbackOutputChannels, sampleSize);
@@ -319,7 +354,20 @@ int main (int argc, char *argv[])
 	{
 		cleanMicChannel = calloc(period_size * outputStreamChannels, sampleSize); 
 	}
-	
+
+again:
+	playbackLoopbackInput.open(playbackLoopbackSettings);
+	playbackLoopbackInput.printConfig();
+
+	playbackOutput.open(playbackOutputSettings);
+	playbackOutput.printConfig();
+
+	captureInput.open(captureInputSettings);
+	captureInput.printConfig();
+
+	captureLoopbackOutput.open(captureLoopbackSettings);
+	captureLoopbackOutput.printConfig();
+
 	try
 	{
 		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
@@ -340,48 +388,13 @@ int main (int argc, char *argv[])
 	playbackLoopbackInput.start();
 	captureInput.start();
 
-	pthread_t thread_playback;
-	pthread_t thread_capture;
-	pthread_attr_t tattr;
-	pthread_t tid;
-	sched_param param;;
-	pid_t pid;
-
-	err = pthread_attr_init(&tattr);
-	if (err < 0)
-	{
-		std::cout << "thread attr init failed" << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-	err = pthread_attr_setschedpolicy(&tattr, SCHED_RR);
-	if (err < 0)
-	{
-		std::cout << "thread attr set policy failed" << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-	err = pthread_attr_getschedparam(&tattr, &param);
-	if (err < 0)
-	{
-		std::cout << "thread attr get param failed" << std::endl;
-		exit(EXIT_FAILURE);
-	}
-	param.sched_priority = 99;
-	err = pthread_attr_setschedparam(&tattr, &param);
-	if (err < 0)
-	{
-		std::cout << "thread attr set param failed" << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-	pid = getpid();
-	err = sched_setscheduler(pid, SCHED_RR, &param);
-	if (err < 0)
-	{
-		std::cout << "set main process scheduler failed" << std::endl;
-		exit(EXIT_FAILURE);
-	}
+	pthread_mutex_init(&playback_lock, NULL);
+	pthread_mutex_init(&capture_lock, NULL);
+	pthread_cond_init(&cond_var, NULL ) ;
+	pthread_cond_init(&cond_var_p, NULL ) ;
+	thread_exit = false;
+	spkSamplesReady = false;
+	micSamplesReady = false;
 
 	err = pthread_create(&thread_playback, &tattr, thread_playback_function, NULL);
 	if (err < 0)
@@ -401,6 +414,13 @@ int main (int argc, char *argv[])
 
 		while (1)
 		{
+
+			if (restart_pipeline && (playbackOutput.recover_count() || playbackLoopbackInput.recover_count() ||
+					captureInput.recover_count() || captureLoopbackOutput.recover_count())) {
+				thread_exit = true;
+				break;
+			}
+
 			pthread_mutex_lock(&capture_lock);
 			while (micSamplesReady != true)
 			{
@@ -469,6 +489,26 @@ int main (int argc, char *argv[])
 	pthread_mutex_destroy(&playback_lock);
 	pthread_cond_destroy(&cond_var);
 	pthread_cond_destroy(&cond_var_p);
+
+	playbackLoopbackInput.close();
+	playbackOutput.close();
+	captureLoopbackOutput.close();
+	captureInput.close();
+
+	/* restart whole pipeline*/
+	if (restart_pipeline)
+		goto again;
+
+	if (libIndex == libraryType::FRAUNHOFER)
+		free(convertedBuffer);
+	if (1 != outputStreamChannels)
+		free(cleanMicChannel);
+
+	free(filteredBuffer);
+	free(captureBuffer);
+	free(refOutBuffer);
+	free(buffer);
+
 	impl->closeProcessor();
 	destroyFce(impl);
 	dlclose(library);
@@ -516,6 +556,9 @@ void *thread_playback_function(void *arg)
 					throw AudioStreamException(snd_strerror(err), "writeFrames", __FILE__, __LINE__, err);
 			}
 		}
+
+		if (thread_exit)
+			break;
 	}
 	pthread_exit(NULL);
 }
@@ -545,6 +588,9 @@ void *thread_capture_function(void *arg)
 					throw AudioStreamException(snd_strerror(err), "readFrames", __FILE__, __LINE__, err);
 			}
 		}
+
+		if (thread_exit)
+			break;
 	}
 	pthread_exit(NULL);
 }

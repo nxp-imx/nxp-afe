@@ -113,6 +113,7 @@ public:
     int writeFrames(const void * buffer, size_t size);
 
     int availFrames(void);
+    int recover_count(void);
     void printConfig(void);
 
 protected:
@@ -129,6 +130,7 @@ protected:
     int _rate;
     int _bufferSizeFrames;
     int _periodSizeFrames;
+    int _recover_count;
     bool _debug_info_enable;
 
     void setHwParams(void);
