@@ -11,7 +11,7 @@ pcm.spk
 pcm.mic
 {
 	type plug
-	slave.pcm "hw:imxaudiomicfil,0"
+	slave.pcm "hw:micfilaudio,0"
 }
 
 # Following two definitions define the Virtual Sink (playback) stream
@@ -94,4 +94,3 @@ pcm.!default
 	playback.pcm "plug:mix"
 	capture.pcm "plug:split"
 }
-

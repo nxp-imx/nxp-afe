@@ -8,11 +8,11 @@ pcm.spk
 	slave.channels 2
 }
 
-# mic represents the physical source (capture) 
+# mic represents the physical source (capture)
 pcm.mic
 {
 	type plug
-	slave.pcm "hw:imxaudiomicfil,0"
+	slave.pcm "hw:micfilaudio,0"
 }
 
 # Following two definitions define the Virtual Sink (playback) stream
