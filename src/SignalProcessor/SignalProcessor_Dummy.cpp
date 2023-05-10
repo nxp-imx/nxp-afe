@@ -127,6 +127,16 @@ namespace SignalProcessor
         return 0;
     }
 
+    int
+    SignalProcessor_Dummy::processSignal(
+            const char *nChannelMicBuffer, size_t micBufferSize,
+            const char *nChannelRefBuffer, size_t refBufferSize,
+            char *cleanMicBuffer, size_t cleanMicBufferSize,
+            char* cleanRefBuffer, size_t cleanRefBufferSize)
+    {
+        return 0;
+    }
+
     const std::string &
     SignalProcessor_Dummy::getJsonConfigurations(void) const
     {
