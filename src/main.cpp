@@ -302,7 +302,7 @@ int main (int argc, char *argv[])
 		captureLoopbackSettings.bufferSizeFrames = buffer_size;
 	}
 
-	if (impl->getReferenceChannelsCount()) {
+	if (impl->getReferenceChannelsCount() > 0) {
 		playbackOutputChannels = impl->getReferenceChannelsCount();
 		playbackLoopbackSettings.channels = playbackOutputChannels;
 		playbackOutputSettings.channels = playbackOutputChannels;
