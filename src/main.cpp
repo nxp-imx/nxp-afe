@@ -368,23 +368,6 @@ again:
 	captureLoopbackOutput.open(captureLoopbackSettings);
 	captureLoopbackOutput.printConfig();
 
-	try
-	{
-		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
-		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
-		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
-		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
-		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
-		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
-		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
-		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
-	}
-	catch (AudioStreamException & e)
-	{
-		std::cout << e.what() << std::endl;
-		std::cout << e.getSource() << std::endl;
-	}
-
 	playbackLoopbackInput.start();
 	captureInput.start();
 
@@ -407,6 +390,27 @@ again:
 	{
 		std::cout << "capture thread create failed" << std::endl;
 		exit(EXIT_FAILURE);
+	}
+
+	/*
+	 * Enable playbackOutput late, when the timer source of loopback is from it,
+	 * It can help to trigger the period complete.
+	 */
+	try
+	{
+		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
+		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
+		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
+		err = captureLoopbackOutput.writeFrames(buffer, period_size * captureOutputChannels * sampleSize);
+		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
+		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
+		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
+		err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
+	}
+	catch (AudioStreamException & e)
+	{
+		std::cout << e.what() << std::endl;
+		std::cout << e.getSource() << std::endl;
 	}
 
 	try
