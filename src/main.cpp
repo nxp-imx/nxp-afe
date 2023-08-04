@@ -9,6 +9,7 @@
 
 #include "AudioStream/AudioStream.h"
 #include "SignalProcessor/SignalProcessorImplementation.h"
+#include "AFEUtilities/AFEUtilities.h"
 
 std::string commandUsageStr =
     "Invalid input arguments!\n" \
@@ -435,10 +436,16 @@ again:
 				pthread_cond_wait(&cond_var, &capture_lock);
 			}
 
-			pthread_mutex_lock(&playback_lock);
-			while (spkSamplesReady != true)
-			{
-				pthread_cond_wait(&cond_var_p, &playback_lock);
+			/*
+			 * After resume from suspend, data from mic should be processed as fast as possible,
+			 * or there'll be latency in wake word detection.
+			 */
+			if (!(tuned && (libIndex == libraryType::VOICESEEKERLIGHT))) {
+				pthread_mutex_lock(&playback_lock);
+				while (spkSamplesReady != true)
+				{
+					pthread_cond_wait(&cond_var_p, &playback_lock);
+				}
 			}
 
 			if (libIndex == libraryType::FRAUNHOFER) {
@@ -473,7 +480,8 @@ again:
 
 			micSamplesReady = false;
 			spkSamplesReady = false;
-			pthread_mutex_unlock(&playback_lock);
+			if (!(tuned && (libIndex == libraryType::VOICESEEKERLIGHT)))
+				pthread_mutex_unlock(&playback_lock);
 			pthread_mutex_unlock(&capture_lock);
 
 			captureLoopbackOutput.writeFrames(cleanMicChannel, period_size * captureOutputChannels * sampleSize);
