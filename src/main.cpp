@@ -281,6 +281,10 @@ int main (int argc, char *argv[])
 
 	SignalProcessor::SignalProcessorImplementation * impl = (SignalProcessor::SignalProcessorImplementation *) createFce();
 
+    if (impl == NULL) {
+        exit(1);
+    }
+
 	std::cout << "Opening signal processor...\n";
 
 	if (impl->getPeriodSize()) {
