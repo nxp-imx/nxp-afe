@@ -18,7 +18,8 @@ std::string commandUsageStr =
     "./afe libdspc\n" \
     "./afe libfraunhofer\n" \
     "./afe libvoiceseekerlight\n" \
-    "./afe libconversa";
+    "./afe libconversa\n" \
+    "./afe <lib> <reference_signal>";
 
 enum class libraryType {
     DUMMY,
@@ -77,6 +78,8 @@ static const int outputStreamChannels 		= 1;
 
 typedef void * (*creator)(void);
 typedef void * (*destructor)(SignalProcessor::SignalProcessorImplementation * impl);
+
+static const int MAX_STR_SIZE = 32;
 
 static AudioStream playbackLoopbackInput;
 static AudioStream playbackOutput;
@@ -153,6 +156,17 @@ int main (int argc, char *argv[])
 		default:
 			break;
 		}
+
+        if(argc == 3) {
+            if(strlen(argv[2]) > MAX_STR_SIZE) {
+                std::cout << "The device name is too long" << std::endl;
+                exit(1);
+            }
+
+            playbackLoopbackInputName = argv[2];
+            playbackOutputName = "";
+        }
+
 		std::cout << libraryName << std::endl;
 	} else {
 		std::cout << commandUsageStr << std::endl;
@@ -364,7 +378,19 @@ again:
 	playbackLoopbackInput.open(playbackLoopbackSettings);
 	playbackLoopbackInput.printConfig();
 
-	playbackOutput.open(playbackOutputSettings);
+    try
+    {
+        playbackOutput.open(playbackOutputSettings);
+    }
+    catch (AudioStreamException &e)
+    {
+        if(e.getErrorCode() != (int)StreamErrors::eStreamIsClose && argc != 3) {
+            std::cout << argc;
+            std::cout << e.what();
+            throw;
+        }
+    }
+
 	playbackOutput.printConfig();
 
 	captureInput.open(captureInputSettings);
@@ -560,9 +586,15 @@ void *thread_playback_function(void *arg)
 				pthread_mutex_unlock(&playback_lock);
 				pthread_cond_signal(&cond_var_p);
 				if (libIndex != libraryType::CONVERSA) {
-					err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
-					if (err < 0)
-						throw AudioStreamException(snd_strerror(err), "writeFrames", __FILE__, __LINE__, err);
+                    try 
+                    {
+                        err = playbackOutput.writeFrames(buffer, period_size * playbackOutputChannels * sampleSize);
+                        if (err < 0)
+                            throw AudioStreamException(snd_strerror(err), "writeFrames", __FILE__, __LINE__, err);
+                    } catch (AudioStreamException &e) {
+                        if(e.getErrorCode() != (int)StreamErrors::eStreamIsClose)
+                            throw AudioStreamException(snd_strerror(err), "writeFrames", __FILE__, __LINE__, err);
+                    }
 				}
 			}
 			else

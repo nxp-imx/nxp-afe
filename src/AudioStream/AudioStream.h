@@ -49,6 +49,11 @@ enum class StreamType
     eNonInterleaved = 4
 };
 
+enum class StreamErrors
+{
+    eStreamIsClose = -1,
+};
+
 struct streamSettings
 {
     /**
@@ -132,6 +137,7 @@ protected:
     int _periodSizeFrames;
     int _recover_count;
     bool _debug_info_enable;
+    bool _isOpen;    
 
     void setHwParams(void);
     void setSwParams(void);

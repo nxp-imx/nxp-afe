@@ -1,6 +1,8 @@
 // Copyright 2020-2021 NXP
 // SPDX-License-Identifier: BSD-3-Clause
 #include "AudioStreamException.h"
+#include <string>
+#include <cstring>
 
 AudioStreamException::AudioStreamException(
     const char * error_message,
@@ -18,7 +20,12 @@ AudioStreamException::AudioStreamException(
 
 const char * AudioStreamException::what(void) const noexcept
 {
-    return this->_error_message;
+    std::string err = this->_file + std::string(" ") + std::to_string(this->_line);
+    err = err + " " + this->_error_message;
+    char *msg = new char [err.length() + 1];
+    std::strcpy(msg, err.c_str());
+
+    return msg;
 }
 
 const char * AudioStreamException::getSource(void) const noexcept

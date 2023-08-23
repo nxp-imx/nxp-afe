@@ -44,6 +44,12 @@ namespace AudioStreamWrapper
             throw AudioStreamException("Stream already opened", settings.streamName.c_str(), __FILE__, __LINE__, -1);
         }
 
+        if (settings.streamName.empty())
+        {
+            this->_isOpen = false;
+            throw AudioStreamException("Stream is no open", "No name was given", __FILE__, __LINE__, (int)StreamErrors::eStreamIsClose);
+        }
+
         this->_streamName       = settings.streamName;
         this->_streamType       = (settings.direction == StreamDirection::eInput) ? SND_PCM_STREAM_CAPTURE : SND_PCM_STREAM_PLAYBACK;
         this->_accessType       = static_cast<snd_pcm_access_t>(settings.accessType);
@@ -66,6 +72,8 @@ namespace AudioStreamWrapper
         setHwParams();
 
         setSwParams();
+
+        this->_isOpen = true;
     }
 
     void
@@ -249,6 +257,8 @@ namespace AudioStreamWrapper
     int
     AudioStream::readFrames(void * buffer, size_t byte_count)
     {
+        if(!this->_isOpen) throw AudioStreamException("Device is not open", "No name was given", __FILE__, __LINE__, (int)StreamErrors::eStreamIsClose);
+
         /* Make sure the user provided buffer of appropriate size by computing the required bytes count */
         size_t expected_bytes = static_cast<size_t>(snd_pcm_format_size(this->_format, this->_channels * this->_periodSizeFrames));
 
@@ -286,6 +296,7 @@ namespace AudioStreamWrapper
     int
     AudioStream::writeFrames(const void * buffer, size_t byte_count)
     {
+        if(!this->_isOpen) throw AudioStreamException("Device is not open", "No name was given", __FILE__, __LINE__, (int)StreamErrors::eStreamIsClose);
         /* Make sure the user provided buffer of appropriate size by computing the required bytes count */
         size_t expected_bytes = static_cast<size_t>(snd_pcm_format_size(this->_format, this->_channels * this->_periodSizeFrames));
 
@@ -322,6 +333,8 @@ namespace AudioStreamWrapper
     void
     AudioStream::printConfig(void)
     {
+        if(!this->_isOpen) return;
+
         std::cout << this->_streamName << " configuration:" << std::endl;
         snd_pcm_format_t format;
         snd_pcm_hw_params_get_format(_hwParams, &format);
