@@ -6,6 +6,10 @@
 #include <iostream>
 #include <dlfcn.h>
 #include <pthread.h>
+#include <math.h>
+
+#define THREAD_SLEEP_DIVISOR 	 (4U)
+#define ONE_MILLION 			(1000000U)
 
 #include "AudioStream/AudioStream.h"
 #include "SignalProcessor/SignalProcessorImplementation.h"
@@ -75,6 +79,9 @@ static const char * captureLoopbackOutputName 	= "cwloop";
 static const int captureOutputChannels 	 	= 1;
 
 static const int outputStreamChannels 		= 1;
+
+static useconds_t periodSizeInUs = 0;
+static useconds_t sleepTimeInUs = 0;
 
 typedef void * (*creator)(void);
 typedef void * (*destructor)(SignalProcessor::SignalProcessorImplementation * impl);
@@ -410,6 +417,18 @@ again:
 	spkSamplesReady = false;
 	micSamplesReady = false;
 
+	/* Compute how often the audio buffers will need to be read or written */
+	periodSizeInUs = useconds_t(round( (1/(float)rate) * (float)period_size * ONE_MILLION ));
+	/* For the audio threads usleep call.*/
+	sleepTimeInUs = periodSizeInUs/(useconds_t THREAD_SLEEP_DIVISOR);
+
+	if( (0 == sleepTimeInUs) || ( periodSizeInUs < sleepTimeInUs) )
+	{
+		std::cout << "Warning: Computed thread sleep time is: " << sleepTimeInUs <<
+		" . Performance could be affected. " << std::endl;
+	}
+	
+
 	err = pthread_create(&thread_playback, &tattr, thread_playback_function, NULL);
 	if (err < 0)
 	{
@@ -575,7 +594,7 @@ void *thread_playback_function(void *arg)
 	{
 		if (playbackLoopbackInput.availFrames() < period_size || spkSamplesReady)
 		{
-			usleep(100);
+			usleep(sleepTimeInUs);
 		}
 		else
 		{
@@ -618,7 +637,7 @@ void *thread_capture_function(void *arg)
 	{
 		if (captureInput.availFrames() < period_size || micSamplesReady)
 		{
-			usleep(100);
+			usleep(sleepTimeInUs);
 		}
 		else
 		{
