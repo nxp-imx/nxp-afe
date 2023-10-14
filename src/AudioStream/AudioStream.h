@@ -51,7 +51,7 @@ enum class StreamType
 
 enum class StreamErrors
 {
-    eStreamIsClose = -1,
+    eStreamIsClose = -2,
 };
 
 struct streamSettings
