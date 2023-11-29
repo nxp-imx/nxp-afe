@@ -63,6 +63,12 @@ DTB: imx93-11x11-evk.dtb / imx93-11x11-evk-rpmsg.dtb / imx93-11x11-evk-rpmsg-lpv
 
 Mic Hardware: PDM mic on board
 
+## BOARD: i.MX95-19x19-EVK
+
+DTB: imx95-19x19-evk.dtb
+
+Mic Hardware: PDM mic on board
+
 # How to execute program
 
 1. Install aloop module to support `afe`
